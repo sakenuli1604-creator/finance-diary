@@ -43,6 +43,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     }
   }, [accounts]);
 
+  const selectedCurrency =
+    accounts.find((a) => a.id === formData.accountId)?.currency || '';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(formData);
@@ -50,33 +53,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Amount - BIG */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Сумма
-        </label>
-        <input
-          type="number"
-          step="0.01"
-          placeholder="0"
-          value={formData.amount || ''}
-          onChange={(e) =>
-            setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
-          }
-          className="w-full text-4xl font-bold text-center py-4 border-b-2 border-gray-300 focus:border-blue-500 outline-none"
-          required
-          autoFocus
-        />
-      </div>
-
-      {/* Category */}
-      <CategorySelector
-        type={type}
-        selectedCategoryId={formData.categoryId}
-        onSelect={(categoryId) => setFormData({ ...formData, categoryId })}
-      />
-
-      {/* Account */}
+      {/* Account — выбираем счёт первым, чтобы сразу было понятно, в какой валюте вводится сумма */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Счет
@@ -94,6 +71,37 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           ))}
         </select>
       </div>
+
+      {/* Amount - BIG */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Сумма
+        </label>
+        <div className="flex items-center justify-center gap-2">
+          <input
+            type="number"
+            step="0.01"
+            placeholder="0"
+            value={formData.amount || ''}
+            onChange={(e) =>
+              setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
+            }
+            className="w-full text-4xl font-bold text-center py-4 border-b-2 border-gray-300 focus:border-blue-500 outline-none"
+            required
+            autoFocus
+          />
+          <span className="text-3xl font-bold text-gray-400 shrink-0">
+            {selectedCurrency}
+          </span>
+        </div>
+      </div>
+
+      {/* Category */}
+      <CategorySelector
+        type={type}
+        selectedCategoryId={formData.categoryId}
+        onSelect={(categoryId) => setFormData({ ...formData, categoryId })}
+      />
 
       {/* Optional fields */}
       <details className="border rounded-lg p-4">
