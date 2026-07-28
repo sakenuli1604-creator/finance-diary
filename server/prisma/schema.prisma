@@ -8,12 +8,13 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(uuid())
+  email           String   @unique
+  password        String
+  name            String
+  primaryCurrency String   @default("₸")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   accounts     Account[]
   categories   Category[]

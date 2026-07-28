@@ -11,6 +11,7 @@ import { Goals } from './pages/Goals';
 import { GoalDetail } from './pages/GoalDetail';
 import { Analytics } from './pages/Analytics';
 import { Categories } from './pages/Categories';
+import { Settings } from './pages/Settings';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { BottomNav } from './components/layout/BottomNav';
 
@@ -112,6 +113,15 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <Categories />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
             </ProtectedRoute>
           }
         />

@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { getExchangeRates } from './exchangeRateService';
+import { convertAmount } from '../utils/currency';
 
 const prisma = new PrismaClient();
 
@@ -79,17 +81,32 @@ class AccountService {
   }
 
   async getTotalBalance(userId: string) {
-    const accounts = await prisma.account.findMany({
-      where: { userId, isActive: true },
-      select: { balance: true },
-    });
+    const [user, accounts] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { primaryCurrency: true } }),
+      prisma.account.findMany({
+        where: { userId, isActive: true },
+        select: { balance: true, currency: true },
+      }),
+    ]);
+
+    const primaryCurrency = user?.primaryCurrency || '₸';
+    const hasMixedCurrencies = accounts.some((acc) => acc.currency !== primaryCurrency);
+
+    let rates: Record<string, number> = {};
+    if (hasMixedCurrencies) {
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // если курс недоступен — считаем без конвертации, лучше приблизительная сумма, чем ошибка
+      }
+    }
 
     const totalBalance = accounts.reduce(
-      (sum, acc) => sum + Number(acc.balance),
+      (sum, acc) => sum + convertAmount(Number(acc.balance), acc.currency, primaryCurrency, rates),
       0
     );
 
-    return totalBalance;
+    return { totalBalance, currency: primaryCurrency };
   }
 
   async getHistory(userId: string, accountId: string, limit = 50) {

@@ -21,6 +21,7 @@ import { Modal } from '../components/ui/Modal';
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const primaryCurrency = user?.primaryCurrency || '₸';
 
   const [totalBalance, setTotalBalance] = useState(0);
   const [todayStats, setTodayStats] = useState({ income: 0, expense: 0 });
@@ -99,7 +100,7 @@ export const Dashboard: React.FC = () => {
           <Card className="bg-white/10 backdrop-blur-lg border-white/20 p-6">
             <p className="text-blue-100 text-sm mb-2">Общий баланс</p>
             <p className="text-4xl font-bold mb-4">
-              {formatAmount(totalBalance)} ₸
+              {formatAmount(totalBalance)} {primaryCurrency}
             </p>
 
             {/* Today Stats */}
@@ -107,13 +108,13 @@ export const Dashboard: React.FC = () => {
               <div className="bg-white/10 rounded-lg p-3">
                 <p className="text-blue-100 text-xs mb-1">Доходы сегодня</p>
                 <p className="text-lg font-semibold text-green-300">
-                  +{formatAmount(todayStats.income)} ₸
+                  +{formatAmount(todayStats.income)} {primaryCurrency}
                 </p>
               </div>
               <div className="bg-white/10 rounded-lg p-3">
                 <p className="text-blue-100 text-xs mb-1">Расходы сегодня</p>
                 <p className="text-lg font-semibold text-red-300">
-                  -{formatAmount(todayStats.expense)} ₸
+                  -{formatAmount(todayStats.expense)} {primaryCurrency}
                 </p>
               </div>
             </div>
@@ -285,7 +286,7 @@ export const Dashboard: React.FC = () => {
                       }`}
                     >
                       {transaction.type === 'income' ? '+' : '-'}
-                      {formatAmount(Number(transaction.amount))} ₸
+                      {formatAmount(Number(transaction.amount))} {transaction.account?.currency || primaryCurrency}
                     </p>
                   </div>
                 </Card>

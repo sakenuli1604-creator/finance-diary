@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { getExchangeRates } from './exchangeRateService';
+import { convertAmount } from '../utils/currency';
 
 const prisma = new PrismaClient();
 
@@ -255,22 +257,43 @@ class TransactionService {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    const transactions = await prisma.transaction.findMany({
-      where: {
-        userId,
-        transactionDate: { gte: startOfDay, lte: endOfDay },
-      },
-    });
+    const [user, transactions] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { primaryCurrency: true } }),
+      prisma.transaction.findMany({
+        where: {
+          userId,
+          transactionDate: { gte: startOfDay, lte: endOfDay },
+        },
+        include: { account: { select: { currency: true } } },
+      }),
+    ]);
+
+    const primaryCurrency = user?.primaryCurrency || '₸';
+    const hasMixedCurrencies = transactions.some(
+      (t) => t.account?.currency && t.account.currency !== primaryCurrency
+    );
+
+    let rates: Record<string, number> = {};
+    if (hasMixedCurrencies) {
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — считаем без конвертации
+      }
+    }
+
+    const toPrimary = (amount: number, fromCurrency?: string) =>
+      convertAmount(amount, fromCurrency || primaryCurrency, primaryCurrency, rates);
 
     const income = transactions
       .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
+      .reduce((sum, t) => sum + toPrimary(Number(t.amount), t.account?.currency), 0);
 
     const expense = transactions
       .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
+      .reduce((sum, t) => sum + toPrimary(Number(t.amount), t.account?.currency), 0);
 
-    return { income, expense };
+    return { income, expense, currency: primaryCurrency };
   }
 }
 

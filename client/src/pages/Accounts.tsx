@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, ArrowLeft } from 'lucide-react';
 import { useAccountsStore } from '../store/accountsStore';
+import { useAuthStore } from '../store/authStore';
+import { useExchangeRatesStore } from '../store/exchangeRatesStore';
 import { AccountCard } from '../components/accounts/AccountCard';
 import { AccountForm } from '../components/accounts/AccountForm';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { convertAmount } from '../utils/currency';
 
 export const Accounts: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +19,9 @@ export const Accounts: React.FC = () => {
     fetchAccounts,
     createAccount,
   } = useAccountsStore();
+  const { user } = useAuthStore();
+  const { rates, fetchRates } = useExchangeRatesStore();
+  const primaryCurrency = user?.primaryCurrency || '₸';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -23,6 +29,10 @@ export const Accounts: React.FC = () => {
   useEffect(() => {
     fetchAccounts();
   }, [fetchAccounts]);
+
+  useEffect(() => {
+    fetchRates();
+  }, [fetchRates]);
 
   const handleCreateAccount = async (data: any) => {
     try {
@@ -37,7 +47,9 @@ export const Accounts: React.FC = () => {
   };
 
   const totalBalance = accounts.reduce(
-    (sum, acc) => sum + (acc.isActive ? Number(acc.balance) : 0),
+    (sum, acc) =>
+      sum +
+      (acc.isActive ? convertAmount(Number(acc.balance), acc.currency, primaryCurrency, rates) : 0),
     0
   );
 
@@ -67,7 +79,7 @@ export const Accounts: React.FC = () => {
         <Card className="p-6">
           <p className="text-sm text-gray-600 mb-1">Общий баланс</p>
           <p className="text-3xl font-bold text-gray-900">
-            {formatBalance(totalBalance)} ₸
+            {formatBalance(totalBalance)} {primaryCurrency}
           </p>
         </Card>
 

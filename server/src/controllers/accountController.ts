@@ -56,8 +56,8 @@ class AccountController {
   async getTotalBalance(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;
-      const totalBalance = await accountService.getTotalBalance(userId);
-      res.json({ totalBalance });
+      const result = await accountService.getTotalBalance(userId);
+      res.json(result);
     } catch (error) {
       next(error);
     }

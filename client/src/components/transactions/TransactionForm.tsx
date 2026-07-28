@@ -34,6 +34,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   }, [fetchAccounts]);
 
   useEffect(() => {
+    setFormData((prev) => ({ ...prev, type, categoryId: '' }));
+  }, [type]);
+
+  useEffect(() => {
     if (accounts.length > 0 && !formData.accountId) {
       setFormData((prev) => ({ ...prev, accountId: accounts[0].id }));
     }

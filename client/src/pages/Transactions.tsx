@@ -2,18 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Filter } from 'lucide-react';
 import { useTransactionsStore } from '../store/transactionsStore';
+import { useAuthStore } from '../store/authStore';
+import { useExchangeRatesStore } from '../store/exchangeRatesStore';
 import { TransactionItem } from '../components/transactions/TransactionItem';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { convertAmount } from '../utils/currency';
 
 export const Transactions: React.FC = () => {
   const navigate = useNavigate();
   const { transactions, isLoading, fetchTransactions } = useTransactionsStore();
+  const { user } = useAuthStore();
+  const { rates, fetchRates } = useExchangeRatesStore();
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
+  const primaryCurrency = user?.primaryCurrency || '₸';
 
   useEffect(() => {
     fetchTransactions(filter !== 'all' ? { type: filter } : undefined);
   }, [filter, fetchTransactions]);
+
+  useEffect(() => {
+    fetchRates();
+  }, [fetchRates]);
 
   const filteredTransactions =
     filter === 'all'
@@ -22,11 +32,19 @@ export const Transactions: React.FC = () => {
 
   const totalIncome = transactions
     .filter((t) => t.type === 'income')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    .reduce(
+      (sum, t) =>
+        sum + convertAmount(Number(t.amount), t.account?.currency || primaryCurrency, primaryCurrency, rates),
+      0
+    );
 
   const totalExpense = transactions
     .filter((t) => t.type === 'expense')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    .reduce(
+      (sum, t) =>
+        sum + convertAmount(Number(t.amount), t.account?.currency || primaryCurrency, primaryCurrency, rates),
+      0
+    );
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('ru-RU').format(amount);
@@ -60,13 +78,13 @@ export const Transactions: React.FC = () => {
           <Card className="p-4">
             <p className="text-sm text-gray-600 mb-1">Доходы</p>
             <p className="text-xl font-bold text-green-600">
-              +{formatAmount(totalIncome)} ₸
+              +{formatAmount(totalIncome)} {primaryCurrency}
             </p>
           </Card>
           <Card className="p-4">
             <p className="text-sm text-gray-600 mb-1">Расходы</p>
             <p className="text-xl font-bold text-red-600">
-              -{formatAmount(totalExpense)} ₸
+              -{formatAmount(totalExpense)} {primaryCurrency}
             </p>
           </Card>
         </div>

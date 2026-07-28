@@ -40,6 +40,7 @@ class AuthService {
         id: true,
         email: true,
         name: true,
+        primaryCurrency: true,
         createdAt: true,
       },
     });
@@ -78,6 +79,7 @@ class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+        primaryCurrency: user.primaryCurrency,
         createdAt: user.createdAt,
       },
       token,
@@ -91,6 +93,7 @@ class AuthService {
         id: true,
         email: true,
         name: true,
+        primaryCurrency: true,
         createdAt: true,
       },
     });

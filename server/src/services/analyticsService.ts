@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { getExchangeRates } from './exchangeRateService';
+import { convertAmount } from '../utils/currency';
 
 const prisma = new PrismaClient();
 
@@ -12,35 +14,58 @@ class AnalyticsService {
       if (dateTo) where.transactionDate.lte = dateTo;
     }
 
-    const transactions = await prisma.transaction.findMany({
-      where,
-      include: {
-        category: true,
-      },
-    });
+    const [user, transactions, accounts] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { primaryCurrency: true } }),
+      prisma.transaction.findMany({
+        where,
+        include: {
+          category: true,
+          account: { select: { currency: true } },
+        },
+      }),
+      prisma.account.findMany({
+        where: { userId, isActive: true },
+        select: { balance: true, currency: true },
+      }),
+    ]);
+
+    const primaryCurrency = user?.primaryCurrency || '₸';
+    const hasMixedCurrencies =
+      transactions.some((t) => t.account?.currency && t.account.currency !== primaryCurrency) ||
+      accounts.some((acc) => acc.currency !== primaryCurrency);
+
+    let rates: Record<string, number> = {};
+    if (hasMixedCurrencies) {
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — считаем без конвертации
+      }
+    }
 
     const income = transactions
       .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
+      .reduce(
+        (sum, t) =>
+          sum + convertAmount(Number(t.amount), t.account?.currency || primaryCurrency, primaryCurrency, rates),
+        0
+      );
 
     const expense = transactions
       .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
+      .reduce(
+        (sum, t) =>
+          sum + convertAmount(Number(t.amount), t.account?.currency || primaryCurrency, primaryCurrency, rates),
+        0
+      );
 
     const savings = income - expense;
 
-    // Баланс всех активных счетов
-    const accountsBalance = await prisma.account.aggregate({
-      where: {
-        userId,
-        isActive: true,
-      },
-      _sum: {
-        balance: true,
-      },
-    });
-
-    const balance = Number(accountsBalance._sum.balance || 0);
+    // Баланс всех активных счетов, сконвертированный в основную валюту
+    const balance = accounts.reduce(
+      (sum, acc) => sum + convertAmount(Number(acc.balance), acc.currency, primaryCurrency, rates),
+      0
+    );
 
     return {
       totalIncome: income,
@@ -48,6 +73,7 @@ class AnalyticsService {
       savings,
       balance,
       transactionCount: transactions.length,
+      currency: primaryCurrency,
     };
   }
 
@@ -60,12 +86,30 @@ class AnalyticsService {
       if (dateTo) where.transactionDate.lte = dateTo;
     }
 
-    const transactions = await prisma.transaction.findMany({
-      where,
-      include: {
-        category: true,
-      },
-    });
+    const [user, transactions] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { primaryCurrency: true } }),
+      prisma.transaction.findMany({
+        where,
+        include: {
+          category: true,
+          account: { select: { currency: true } },
+        },
+      }),
+    ]);
+
+    const primaryCurrency = user?.primaryCurrency || '₸';
+    const hasMixedCurrencies = transactions.some(
+      (t) => t.account?.currency && t.account.currency !== primaryCurrency
+    );
+
+    let rates: Record<string, number> = {};
+    if (hasMixedCurrencies) {
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — считаем без конвертации
+      }
+    }
 
     // Группируем по категориям
     const categoryMap = new Map();
@@ -85,7 +129,7 @@ class AnalyticsService {
       }
 
       const cat = categoryMap.get(categoryId);
-      cat.total += Number(t.amount);
+      cat.total += convertAmount(Number(t.amount), t.account?.currency || primaryCurrency, primaryCurrency, rates);
       cat.count += 1;
     });
 
@@ -111,18 +155,36 @@ class AnalyticsService {
   }
 
   async getTrends(userId: string, dateFrom: Date, dateTo: Date, groupBy: 'day' | 'week' | 'month' = 'day') {
-    const transactions = await prisma.transaction.findMany({
-      where: {
-        userId,
-        transactionDate: {
-          gte: dateFrom,
-          lte: dateTo,
+    const [user, transactions] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { primaryCurrency: true } }),
+      prisma.transaction.findMany({
+        where: {
+          userId,
+          transactionDate: {
+            gte: dateFrom,
+            lte: dateTo,
+          },
         },
-      },
-      orderBy: {
-        transactionDate: 'asc',
-      },
-    });
+        include: { account: { select: { currency: true } } },
+        orderBy: {
+          transactionDate: 'asc',
+        },
+      }),
+    ]);
+
+    const primaryCurrency = user?.primaryCurrency || '₸';
+    const hasMixedCurrencies = transactions.some(
+      (t) => t.account?.currency && t.account.currency !== primaryCurrency
+    );
+
+    let rates: Record<string, number> = {};
+    if (hasMixedCurrencies) {
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — считаем без конвертации
+      }
+    }
 
     // Группируем по датам
     const trendMap = new Map();
@@ -150,10 +212,11 @@ class AnalyticsService {
       }
 
       const trend = trendMap.get(dateKey);
+      const converted = convertAmount(Number(t.amount), t.account?.currency || primaryCurrency, primaryCurrency, rates);
       if (t.type === 'income') {
-        trend.income += Number(t.amount);
+        trend.income += converted;
       } else {
-        trend.expense += Number(t.amount);
+        trend.expense += converted;
       }
     });
 

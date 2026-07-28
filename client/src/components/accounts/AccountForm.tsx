@@ -67,6 +67,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({
           <option value="$">$ (Доллар)</option>
           <option value="€">€ (Евро)</option>
           <option value="₽">₽ (Рубль)</option>
+          <option value="₴">₴ (Гривна)</option>
         </select>
       </div>
 

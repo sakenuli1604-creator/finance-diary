@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, TrendingDown } from 'lucide-react';
 import { analyticsAPI } from '../api/analytics';
+import { useAuthStore } from '../store/authStore';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import {
@@ -20,6 +21,8 @@ import {
 
 export const Analytics: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const primaryCurrency = user?.primaryCurrency || '₸';
   const [period, setPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [summary, setSummary] = useState<any>(null);
   const [byCategory, setByCategory] = useState<any[]>([]);
@@ -146,7 +149,7 @@ export const Analytics: React.FC = () => {
               <p className="text-sm text-gray-600">Доходы</p>
             </div>
             <p className="text-2xl font-bold text-green-600">
-              +{formatAmount(summary?.totalIncome || 0)} ₸
+              +{formatAmount(summary?.totalIncome || 0)} {primaryCurrency}
             </p>
           </Card>
 
@@ -156,7 +159,7 @@ export const Analytics: React.FC = () => {
               <p className="text-sm text-gray-600">Расходы</p>
             </div>
             <p className="text-2xl font-bold text-red-600">
-              -{formatAmount(summary?.totalExpense || 0)} ₸
+              -{formatAmount(summary?.totalExpense || 0)} {primaryCurrency}
             </p>
           </Card>
 
@@ -168,14 +171,14 @@ export const Analytics: React.FC = () => {
               }`}
             >
               {(summary?.savings || 0) >= 0 ? '+' : ''}
-              {formatAmount(summary?.savings || 0)} ₸
+              {formatAmount(summary?.savings || 0)} {primaryCurrency}
             </p>
           </Card>
 
           <Card className="p-4">
             <p className="text-sm text-gray-600 mb-2">Баланс</p>
             <p className="text-2xl font-bold text-gray-900">
-              {formatAmount(summary?.balance || 0)} ₸
+              {formatAmount(summary?.balance || 0)} {primaryCurrency}
             </p>
           </Card>
         </div>
@@ -198,7 +201,7 @@ export const Analytics: React.FC = () => {
                   />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip
-                    formatter={(value: any) => formatAmount(value) + ' ₸'}
+                    formatter={(value: any) => formatAmount(value) + ' ' + primaryCurrency}
                     labelFormatter={(label) => {
                       const date = new Date(label);
                       return date.toLocaleDateString('ru-RU');
@@ -252,7 +255,7 @@ export const Analytics: React.FC = () => {
                         />
                       ))}
                   </Pie>
-                  <Tooltip formatter={(value: any) => formatAmount(value) + ' ₸'} />
+                  <Tooltip formatter={(value: any) => formatAmount(value) + ' ' + primaryCurrency} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -282,7 +285,7 @@ export const Analytics: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">
-                        {formatAmount(category.total)} ₸
+                        {formatAmount(category.total)} {primaryCurrency}
                       </p>
                       <p className="text-xs text-gray-500">
                         {category.percentage.toFixed(1)}%
@@ -319,7 +322,7 @@ export const Analytics: React.FC = () => {
                     </div>
                   </div>
                   <p className="font-bold text-red-600">
-                    {formatAmount(Number(expense.amount))} ₸
+                    {formatAmount(Number(expense.amount))} {expense.account?.currency || primaryCurrency}
                   </p>
                 </div>
               ))}

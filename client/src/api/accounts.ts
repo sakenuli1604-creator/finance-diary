@@ -44,7 +44,9 @@ export const accountsAPI = {
   },
 
   getTotalBalance: async (): Promise<number> => {
-    const response = await api.get<{ totalBalance: number }>('/accounts/total-balance');
+    const response = await api.get<{ totalBalance: number; currency: string }>(
+      '/accounts/total-balance'
+    );
     return response.data.totalBalance;
   },
 

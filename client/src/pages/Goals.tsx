@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useGoalsStore } from '../store/goalsStore';
+import { useAuthStore } from '../store/authStore';
 import { GoalCard } from '../components/goals/GoalCard';
 import { GoalForm } from '../components/goals/GoalForm';
 import { Modal } from '../components/ui/Modal';
@@ -11,6 +12,8 @@ import { Card } from '../components/ui/Card';
 export const Goals: React.FC = () => {
   const navigate = useNavigate();
   const { goals, isLoading, fetchGoals, createGoal } = useGoalsStore();
+  const { user } = useAuthStore();
+  const primaryCurrency = user?.primaryCurrency || '₸';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -65,10 +68,10 @@ export const Goals: React.FC = () => {
           <div className="flex justify-between items-end mb-3">
             <div>
               <p className="text-2xl font-bold text-gray-900">
-                {formatAmount(totalSaved)} ₸
+                {formatAmount(totalSaved)} {primaryCurrency}
               </p>
               <p className="text-sm text-gray-600">
-                из {formatAmount(totalTarget)} ₸
+                из {formatAmount(totalTarget)} {primaryCurrency}
               </p>
             </div>
             <div className="text-right">
