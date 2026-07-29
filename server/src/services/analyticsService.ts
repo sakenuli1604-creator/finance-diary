@@ -31,7 +31,7 @@ class AnalyticsService {
 
     const primaryCurrency = user?.primaryCurrency || '₸';
     const hasMixedCurrencies =
-      transactions.some((t) => t.account?.currency && t.account.currency !== primaryCurrency) ||
+      transactions.some((t) => t.currency && t.currency !== primaryCurrency) ||
       accounts.some((acc) => acc.currency !== primaryCurrency);
 
     let rates: Record<string, number> = {};
@@ -47,7 +47,7 @@ class AnalyticsService {
       .filter((t) => t.type === 'income')
       .reduce(
         (sum, t) =>
-          sum + convertAmount(Number(t.amount), t.account?.currency || primaryCurrency, primaryCurrency, rates),
+          sum + convertAmount(Number(t.amount), t.currency || primaryCurrency, primaryCurrency, rates),
         0
       );
 
@@ -55,7 +55,7 @@ class AnalyticsService {
       .filter((t) => t.type === 'expense')
       .reduce(
         (sum, t) =>
-          sum + convertAmount(Number(t.amount), t.account?.currency || primaryCurrency, primaryCurrency, rates),
+          sum + convertAmount(Number(t.amount), t.currency || primaryCurrency, primaryCurrency, rates),
         0
       );
 
@@ -99,7 +99,7 @@ class AnalyticsService {
 
     const primaryCurrency = user?.primaryCurrency || '₸';
     const hasMixedCurrencies = transactions.some(
-      (t) => t.account?.currency && t.account.currency !== primaryCurrency
+      (t) => t.currency && t.currency !== primaryCurrency
     );
 
     let rates: Record<string, number> = {};
@@ -129,7 +129,7 @@ class AnalyticsService {
       }
 
       const cat = categoryMap.get(categoryId);
-      cat.total += convertAmount(Number(t.amount), t.account?.currency || primaryCurrency, primaryCurrency, rates);
+      cat.total += convertAmount(Number(t.amount), t.currency || primaryCurrency, primaryCurrency, rates);
       cat.count += 1;
     });
 
@@ -174,7 +174,7 @@ class AnalyticsService {
 
     const primaryCurrency = user?.primaryCurrency || '₸';
     const hasMixedCurrencies = transactions.some(
-      (t) => t.account?.currency && t.account.currency !== primaryCurrency
+      (t) => t.currency && t.currency !== primaryCurrency
     );
 
     let rates: Record<string, number> = {};
@@ -212,7 +212,7 @@ class AnalyticsService {
       }
 
       const trend = trendMap.get(dateKey);
-      const converted = convertAmount(Number(t.amount), t.account?.currency || primaryCurrency, primaryCurrency, rates);
+      const converted = convertAmount(Number(t.amount), t.currency || primaryCurrency, primaryCurrency, rates);
       if (t.type === 'income') {
         trend.income += converted;
       } else {

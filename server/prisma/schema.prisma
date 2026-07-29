@@ -67,6 +67,7 @@ model Transaction {
   categoryId      String
   type            String // 'income' | 'expense' | 'transfer'
   amount          Decimal   @db.Decimal(15, 2)
+  currency        String    @default("₸") // валюта на момент создания — не меняется, даже если валюту счёта потом поменяют
   title           String?
   description     String?
   shop            String?

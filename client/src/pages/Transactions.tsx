@@ -34,7 +34,7 @@ export const Transactions: React.FC = () => {
     .filter((t) => t.type === 'income')
     .reduce(
       (sum, t) =>
-        sum + convertAmount(Number(t.amount), t.account?.currency || primaryCurrency, primaryCurrency, rates),
+        sum + convertAmount(Number(t.amount), t.currency, primaryCurrency, rates),
       0
     );
 
@@ -42,7 +42,7 @@ export const Transactions: React.FC = () => {
     .filter((t) => t.type === 'expense')
     .reduce(
       (sum, t) =>
-        sum + convertAmount(Number(t.amount), t.account?.currency || primaryCurrency, primaryCurrency, rates),
+        sum + convertAmount(Number(t.amount), t.currency, primaryCurrency, rates),
       0
     );
 

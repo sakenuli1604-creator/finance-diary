@@ -37,6 +37,7 @@ export interface Transaction {
   categoryId: string;
   type: 'income' | 'expense';
   amount: number;
+  currency: string;
   title?: string;
   description?: string;
   shop?: string;

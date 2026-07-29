@@ -286,7 +286,7 @@ export const Dashboard: React.FC = () => {
                       }`}
                     >
                       {transaction.type === 'income' ? '+' : '-'}
-                      {formatAmount(Number(transaction.amount))} {transaction.account?.currency || primaryCurrency}
+                      {formatAmount(Number(transaction.amount))} {transaction.currency}
                     </p>
                   </div>
                 </Card>

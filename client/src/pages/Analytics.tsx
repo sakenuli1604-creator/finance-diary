@@ -322,7 +322,7 @@ export const Analytics: React.FC = () => {
                     </div>
                   </div>
                   <p className="font-bold text-red-600">
-                    {formatAmount(Number(expense.amount))} {expense.account?.currency || primaryCurrency}
+                    {formatAmount(Number(expense.amount))} {expense.currency}
                   </p>
                 </div>
               ))}

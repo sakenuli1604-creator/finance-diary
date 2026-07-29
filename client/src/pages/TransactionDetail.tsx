@@ -114,7 +114,7 @@ export const TransactionDetail: React.FC = () => {
           >
             {selectedTransaction.type === 'income' ? '+' : '-'}
             {formatAmount(Number(selectedTransaction.amount))}{' '}
-            {selectedTransaction.account?.currency || '₸'}
+            {selectedTransaction.currency}
           </p>
 
           <div className="space-y-2 text-sm">

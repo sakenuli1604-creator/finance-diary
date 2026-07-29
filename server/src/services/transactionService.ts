@@ -109,7 +109,7 @@ class TransactionService {
       throw new Error('type must be income or expense');
     }
 
-    await this.assertAccountOwnership(userId, data.accountId);
+    const account = await this.assertAccountOwnership(userId, data.accountId);
     await this.assertCategoryOwnership(userId, data.categoryId);
 
     const result = await prisma.$transaction(async (tx) => {
@@ -120,6 +120,7 @@ class TransactionService {
           categoryId: data.categoryId,
           type: data.type,
           amount: data.amount,
+          currency: account.currency,
           title: data.title,
           description: data.description,
           shop: data.shop,
@@ -151,8 +152,9 @@ class TransactionService {
   async update(userId: string, id: string, data: UpdateTransactionDTO) {
     const existing = await this.getById(userId, id);
 
+    let newAccount = null;
     if (data.accountId) {
-      await this.assertAccountOwnership(userId, data.accountId);
+      newAccount = await this.assertAccountOwnership(userId, data.accountId);
     }
     if (data.categoryId) {
       await this.assertCategoryOwnership(userId, data.categoryId);
@@ -187,7 +189,10 @@ class TransactionService {
       const updated = await tx.transaction.update({
         where: { id },
         data: {
-          ...(data.accountId !== undefined && { accountId: data.accountId }),
+          ...(data.accountId !== undefined && {
+            accountId: data.accountId,
+            currency: newAccount!.currency,
+          }),
           ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
           ...(data.amount !== undefined && { amount: data.amount }),
           ...(data.title !== undefined && { title: data.title }),
@@ -270,7 +275,7 @@ class TransactionService {
 
     const primaryCurrency = user?.primaryCurrency || '₸';
     const hasMixedCurrencies = transactions.some(
-      (t) => t.account?.currency && t.account.currency !== primaryCurrency
+      (t) => t.currency && t.currency !== primaryCurrency
     );
 
     let rates: Record<string, number> = {};
@@ -287,11 +292,11 @@ class TransactionService {
 
     const income = transactions
       .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + toPrimary(Number(t.amount), t.account?.currency), 0);
+      .reduce((sum, t) => sum + toPrimary(Number(t.amount), t.currency), 0);
 
     const expense = transactions
       .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + toPrimary(Number(t.amount), t.account?.currency), 0);
+      .reduce((sum, t) => sum + toPrimary(Number(t.amount), t.currency), 0);
 
     return { income, expense, currency: primaryCurrency };
   }

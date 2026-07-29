@@ -56,7 +56,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             }`}
           >
             {transaction.type === 'income' ? '+' : '-'}
-            {formatAmount(Number(transaction.amount))} {transaction.account?.currency || '₸'}
+            {formatAmount(Number(transaction.amount))} {transaction.currency}
           </p>
           {transaction.rating && (
             <div className="flex gap-0.5 justify-end mt-1">
