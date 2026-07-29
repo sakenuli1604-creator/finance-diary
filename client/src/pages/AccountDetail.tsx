@@ -158,7 +158,7 @@ export const AccountDetail: React.FC = () => {
                       }`}
                     >
                       {Number(item.amount) >= 0 ? '+' : ''}
-                      {formatBalance(Number(item.amount))} {selectedAccount.currency}
+                      {formatBalance(Number(item.amount))} {item.currency || selectedAccount.currency}
                     </p>
                   </div>
                 </Card>

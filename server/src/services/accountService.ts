@@ -140,6 +140,7 @@ class AccountService {
         description: t.title || t.category?.name || 'Операция',
         date: t.transactionDate,
         amount: t.type === 'expense' ? -Number(t.amount) : Number(t.amount),
+        currency: t.currency,
       })),
       ...transfersOut.map((t) => ({
         id: t.id,
