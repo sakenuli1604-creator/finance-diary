@@ -59,6 +59,9 @@ export interface Transfer {
   fromAccountId: string;
   toAccountId: string;
   amount: number;
+  currency: string;
+  receivedAmount: number;
+  toCurrency: string;
   description?: string;
   createdAt: string;
   fromAccount?: Account;

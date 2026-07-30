@@ -95,6 +95,9 @@ model Transfer {
   fromAccountId String
   toAccountId   String
   amount        Decimal  @db.Decimal(15, 2)
+  currency          String   // валюта fromAccount на момент перевода (снапшот)
+  receivedAmount    Decimal  @db.Decimal(15, 2) // сумма, зачисленная на toAccount (после конвертации)
+  toCurrency        String   // валюта toAccount на момент перевода (снапшот)
   description   String?
   createdAt     DateTime @default(now())
 

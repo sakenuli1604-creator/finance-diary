@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { getExchangeRates } from './exchangeRateService';
+import { convertAmount } from '../utils/currency';
 
 const prisma = new PrismaClient();
 
@@ -44,7 +46,6 @@ class TransferService {
   }
 
   async create(userId: string, data: CreateTransferDTO) {
-    // Проверяем что оба счета принадлежат пользователю
     const [fromAccount, toAccount] = await Promise.all([
       prisma.account.findFirst({
         where: { id: data.fromAccountId, userId },
@@ -70,20 +71,34 @@ class TransferService {
       throw new Error('Amount must be positive');
     }
 
-    // Проверяем достаточно ли средств
     if (Number(fromAccount.balance) < data.amount) {
       throw new Error('Insufficient funds');
     }
 
-    // Выполняем перевод в транзакции
+    // Если валюты счетов разные — конвертируем сумму по текущему курсу.
+    // Снапшотим обе валюты на момент перевода, чтобы дальнейшая смена
+    // валюты счёта не искажала историю (та же логика, что и у транзакций).
+    let receivedAmount = data.amount;
+    if (fromAccount.currency !== toAccount.currency) {
+      let rates: Record<string, number> = {};
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — переводим 1:1, лучше приблизительно, чем упасть с ошибкой
+      }
+      receivedAmount = convertAmount(data.amount, fromAccount.currency, toAccount.currency, rates);
+    }
+
     const result = await prisma.$transaction(async (tx) => {
-      // Создаем запись о переводе
       const transfer = await tx.transfer.create({
         data: {
           userId,
           fromAccountId: data.fromAccountId,
           toAccountId: data.toAccountId,
           amount: data.amount,
+          currency: fromAccount.currency,
+          receivedAmount,
+          toCurrency: toAccount.currency,
           description: data.description,
         },
         include: {
@@ -92,7 +107,6 @@ class TransferService {
         },
       });
 
-      // Списываем со счета-источника
       await tx.account.update({
         where: { id: data.fromAccountId },
         data: {
@@ -100,11 +114,10 @@ class TransferService {
         },
       });
 
-      // Зачисляем на счет-получатель
       await tx.account.update({
         where: { id: data.toAccountId },
         data: {
-          balance: { increment: data.amount },
+          balance: { increment: receivedAmount },
         },
       });
 
@@ -117,24 +130,46 @@ class TransferService {
   async delete(transferId: string, userId: string) {
     const transfer = await this.getById(transferId, userId);
 
-    // Отменяем перевод
+    const fromAccount = transfer.fromAccount;
+    const toAccount = transfer.toAccount;
+
+    let amountForFrom = Number(transfer.amount);
+    if (transfer.currency !== fromAccount.currency) {
+      let rates: Record<string, number> = {};
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — откатываем как есть
+      }
+      amountForFrom = convertAmount(Number(transfer.amount), transfer.currency, fromAccount.currency, rates);
+    }
+
+    let amountForTo = Number(transfer.receivedAmount);
+    if (transfer.toCurrency !== toAccount.currency) {
+      let rates: Record<string, number> = {};
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — откатываем как есть
+      }
+      amountForTo = convertAmount(Number(transfer.receivedAmount), transfer.toCurrency, toAccount.currency, rates);
+    }
+
     await prisma.$transaction(async (tx) => {
-      // Возвращаем деньги обратно
       await tx.account.update({
         where: { id: transfer.fromAccountId },
         data: {
-          balance: { increment: Number(transfer.amount) },
+          balance: { increment: amountForFrom },
         },
       });
 
       await tx.account.update({
         where: { id: transfer.toAccountId },
         data: {
-          balance: { decrement: Number(transfer.amount) },
+          balance: { decrement: amountForTo },
         },
       });
 
-      // Удаляем запись о переводе
       await tx.transfer.delete({
         where: { id: transferId },
       });

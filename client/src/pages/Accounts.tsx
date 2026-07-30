@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, ArrowLeft } from 'lucide-react';
+import { Plus, ArrowLeft, ArrowLeftRight } from 'lucide-react';
 import { useAccountsStore } from '../store/accountsStore';
 import { useAuthStore } from '../store/authStore';
 import { useExchangeRatesStore } from '../store/exchangeRatesStore';
+import { useTransfersStore } from '../store/transfersStore';
 import { AccountCard } from '../components/accounts/AccountCard';
 import { AccountForm } from '../components/accounts/AccountForm';
+import { TransferForm } from '../components/transfers/TransferForm';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -21,10 +23,12 @@ export const Accounts: React.FC = () => {
   } = useAccountsStore();
   const { user } = useAuthStore();
   const { rates, fetchRates } = useExchangeRatesStore();
+  const { createTransfer } = useTransfersStore();
   const primaryCurrency = user?.primaryCurrency || '₸';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   useEffect(() => {
     fetchAccounts();
@@ -44,6 +48,12 @@ export const Accounts: React.FC = () => {
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleTransfer = async (data: Parameters<typeof createTransfer>[0]) => {
+    await createTransfer(data);
+    setIsTransferModalOpen(false);
+    fetchAccounts(); // подтягиваем свежие балансы обоих счетов
   };
 
   const totalBalance = accounts.reduce(
@@ -83,15 +93,28 @@ export const Accounts: React.FC = () => {
           </p>
         </Card>
 
-        {/* Add Account Button */}
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          fullWidth
-          className="flex items-center justify-center gap-2"
-        >
-          <Plus size={20} />
-          Добавить счет
-        </Button>
+        {/* Add Account / Transfer Buttons */}
+        <div className="flex gap-3">
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            fullWidth
+            className="flex items-center justify-center gap-2"
+          >
+            <Plus size={20} />
+            Добавить счет
+          </Button>
+          {accounts.length >= 2 && (
+            <Button
+              onClick={() => setIsTransferModalOpen(true)}
+              variant="secondary"
+              fullWidth
+              className="flex items-center justify-center gap-2"
+            >
+              <ArrowLeftRight size={20} />
+              Перевод
+            </Button>
+          )}
+        </div>
 
         {/* Accounts List */}
         {isLoading ? (
@@ -123,6 +146,20 @@ export const Accounts: React.FC = () => {
         title="Новый счет"
       >
         <AccountForm onSubmit={handleCreateAccount} isLoading={isCreating} />
+      </Modal>
+
+      {/* Transfer Between Accounts Modal */}
+      <Modal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        title="Перевод между счетами"
+      >
+        <TransferForm
+          accounts={accounts}
+          rates={rates}
+          onSubmit={handleTransfer}
+          onCancel={() => setIsTransferModalOpen(false)}
+        />
       </Modal>
     </div>
   );
