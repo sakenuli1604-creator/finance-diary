@@ -96,8 +96,10 @@ export const Dashboard: React.FC = () => {
             </button>
           </div>
 
-          {/* Total Balance Card */}
-          <Card className="bg-surface/10 backdrop-blur-lg border-white/20 p-6">
+          {/* Total Balance Card — стеклянная плашка поверх синего градиента,
+              заголовок всегда синий вне зависимости от темы, поэтому здесь
+              намеренно используются буквальные белые полутона, а не токены темы */}
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
             <p className="text-blue-100 text-sm mb-2">Общий баланс</p>
             <p className="text-4xl font-bold mb-4">
               {formatAmount(totalBalance)} {primaryCurrency}
@@ -105,20 +107,20 @@ export const Dashboard: React.FC = () => {
 
             {/* Today Stats */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-surface/10 rounded-lg p-3">
+              <div className="bg-white/10 rounded-lg p-3">
                 <p className="text-blue-100 text-xs mb-1">Доходы сегодня</p>
                 <p className="text-lg font-semibold text-income">
                   +{formatAmount(todayStats.income)} {primaryCurrency}
                 </p>
               </div>
-              <div className="bg-surface/10 rounded-lg p-3">
+              <div className="bg-white/10 rounded-lg p-3">
                 <p className="text-blue-100 text-xs mb-1">Расходы сегодня</p>
                 <p className="text-lg font-semibold text-expense">
                   -{formatAmount(todayStats.expense)} {primaryCurrency}
                 </p>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       </div>
 
