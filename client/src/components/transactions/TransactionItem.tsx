@@ -38,10 +38,10 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
 
           {/* Info */}
           <div>
-            <h3 className="font-medium text-gray-900">
+            <h3 className="font-medium text-primary">
               {transaction.title || transaction.category?.name}
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-secondary">
               {formatDate(transaction.transactionDate)}
               {transaction.shop && ` • ${transaction.shop}`}
             </p>
@@ -52,7 +52,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
         <div className="text-right">
           <p
             className={`text-lg font-bold ${
-              transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+              transaction.type === 'income' ? 'text-income' : 'text-expense'
             }`}
           >
             {transaction.type === 'income' ? '+' : '-'}
@@ -64,7 +64,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
                 <span
                   key={i}
                   className={`text-xs ${
-                    i < transaction.rating! ? 'text-yellow-400' : 'text-gray-300'
+                    i < transaction.rating! ? 'text-yellow-400' : 'text-secondary'
                   }`}
                 >
                   ★

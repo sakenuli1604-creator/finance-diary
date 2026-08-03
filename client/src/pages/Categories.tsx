@@ -93,18 +93,18 @@ export const Categories: React.FC = () => {
   const incomeCategories = filteredCategories.filter((c) => c.type === 'income');
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-app pb-24">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
+      <div className="bg-surface border-b sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-secondary hover:text-primary"
             >
               <ArrowLeft size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Категории</h1>
+            <h1 className="text-2xl font-bold text-primary">Категории</h1>
           </div>
 
           {/* Filter */}
@@ -136,7 +136,7 @@ export const Categories: React.FC = () => {
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {isLoading ? (
-          <div className="text-center py-8 text-gray-500">Загрузка...</div>
+          <div className="text-center py-8 text-secondary">Загрузка...</div>
         ) : (
           <>
             {/* Expense Categories */}
@@ -167,24 +167,24 @@ export const Categories: React.FC = () => {
                           <div className="flex gap-1">
                             <button
                               onClick={() => handleOpenEdit(category)}
-                              className="p-1 text-gray-600 hover:text-blue-600"
+                              className="p-1 text-secondary hover:text-blue-600"
                             >
                               <Edit2 size={16} />
                             </button>
                             <button
                               onClick={() => handleDelete(category.id)}
-                              className="p-1 text-gray-600 hover:text-red-600"
+                              className="p-1 text-secondary hover:text-expense"
                             >
                               <Trash2 size={16} />
                             </button>
                           </div>
                         )}
                       </div>
-                      <p className="font-medium text-gray-900 text-sm">
+                      <p className="font-medium text-primary text-sm">
                         {category.name}
                       </p>
                       {category.isDefault && (
-                        <p className="text-xs text-gray-500 mt-1">По умолчанию</p>
+                        <p className="text-xs text-secondary mt-1">По умолчанию</p>
                       )}
                     </Card>
                   ))}
@@ -220,24 +220,24 @@ export const Categories: React.FC = () => {
                           <div className="flex gap-1">
                             <button
                               onClick={() => handleOpenEdit(category)}
-                              className="p-1 text-gray-600 hover:text-blue-600"
+                              className="p-1 text-secondary hover:text-blue-600"
                             >
                               <Edit2 size={16} />
                             </button>
                             <button
                               onClick={() => handleDelete(category.id)}
-                              className="p-1 text-gray-600 hover:text-red-600"
+                              className="p-1 text-secondary hover:text-expense"
                             >
                               <Trash2 size={16} />
                             </button>
                           </div>
                         )}
                       </div>
-                      <p className="font-medium text-gray-900 text-sm">
+                      <p className="font-medium text-primary text-sm">
                         {category.name}
                       </p>
                       {category.isDefault && (
-                        <p className="text-xs text-gray-500 mt-1">По умолчанию</p>
+                        <p className="text-xs text-secondary mt-1">По умолчанию</p>
                       )}
                     </Card>
                   ))}
@@ -264,7 +264,7 @@ export const Categories: React.FC = () => {
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-secondary mb-2">
               Иконка
             </label>
             <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto">
@@ -275,7 +275,7 @@ export const Categories: React.FC = () => {
                   className={`p-2 text-2xl rounded-lg border-2 transition-all ${
                     formData.icon === icon
                       ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                      : 'border-line hover:border-line'
                   }`}
                   onClick={() => setFormData({ ...formData, icon })}
                 >
@@ -286,7 +286,7 @@ export const Categories: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-secondary mb-2">
               Цвет
             </label>
             <div className="grid grid-cols-5 gap-2">
@@ -296,7 +296,7 @@ export const Categories: React.FC = () => {
                   type="button"
                   className={`h-12 rounded-lg border-2 transition-all ${
                     formData.color === color
-                      ? 'border-gray-900 scale-110'
+                      ? 'border-primary scale-110'
                       : 'border-transparent'
                   }`}
                   style={{ backgroundColor: color }}

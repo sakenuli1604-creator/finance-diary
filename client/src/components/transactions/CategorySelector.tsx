@@ -32,7 +32,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <label className="block text-sm font-medium text-secondary mb-2">
         Категория
       </label>
       <div className="grid grid-cols-3 gap-2">
@@ -44,11 +44,11 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
             className={`p-3 rounded-lg border-2 transition-all ${
               selectedCategoryId === category.id
                 ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
+                : 'border-line hover:border-line'
             }`}
           >
             <div className="text-2xl mb-1">{category.icon || '📌'}</div>
-            <div className="text-xs font-medium text-gray-700">{category.name}</div>
+            <div className="text-xs font-medium text-secondary">{category.name}</div>
           </button>
         ))}
       </div>

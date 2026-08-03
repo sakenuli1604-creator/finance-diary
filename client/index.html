@@ -11,6 +11,18 @@
     <meta name="apple-mobile-web-app-title" content="Финансы" />
     <link rel="manifest" href="/manifest.json" />
     <title>Финансовый дневник</title>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme'); // 'light' | 'dark' | 'system'
+          var isDark =
+            stored === 'dark' ||
+            (stored !== 'light' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', isDark);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

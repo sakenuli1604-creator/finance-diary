@@ -28,18 +28,18 @@ export const AddTransaction: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-app pb-20">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-surface border-b">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-secondary hover:text-primary"
             >
               <ArrowLeft size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-primary">
               Новая операция
             </h1>
           </div>
@@ -72,7 +72,7 @@ export const AddTransaction: React.FC = () => {
         </div>
 
         {/* Form */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-surface rounded-xl shadow-sm border border-line p-6">
           <TransactionForm
             type={type}
             onSubmit={handleSubmit}

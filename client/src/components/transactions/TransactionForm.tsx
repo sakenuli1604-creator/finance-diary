@@ -63,13 +63,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Account — выбираем счёт первым, чтобы сразу было понятно, в какой валюте вводится сумма */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-secondary mb-2">
           Счет
         </label>
         <select
           value={formData.accountId}
           onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="w-full px-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           required
         >
           {accounts.map((account) => (
@@ -82,7 +82,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
       {/* Amount - BIG */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-secondary mb-2">
           Сумма
         </label>
         <div className="flex items-center justify-center gap-2">
@@ -94,11 +94,11 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             onChange={(e) =>
               setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
             }
-            className="w-full text-4xl font-bold text-center py-4 border-b-2 border-gray-300 focus:border-blue-500 outline-none"
+            className="w-full text-4xl font-bold text-center py-4 border-b-2 border-line focus:border-blue-500 outline-none"
             required
             autoFocus
           />
-          <span className="text-3xl font-bold text-gray-400 shrink-0">
+          <span className="text-3xl font-bold text-secondary shrink-0">
             {selectedCurrency}
           </span>
         </div>
@@ -113,7 +113,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
       {/* Optional fields */}
       <details className="border rounded-lg p-4">
-        <summary className="cursor-pointer font-medium text-gray-700">
+        <summary className="cursor-pointer font-medium text-secondary">
           Дополнительно (опционально)
         </summary>
         <div className="mt-4 space-y-3">
@@ -132,7 +132,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-secondary mb-1">
               Описание
             </label>
             <textarea
@@ -140,7 +140,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               rows={3}
               placeholder="Дополнительные детали..."
             />

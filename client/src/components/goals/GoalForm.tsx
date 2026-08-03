@@ -59,7 +59,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
       />
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-secondary mb-2">
           Связать со счетом (опционально)
         </label>
         <select
@@ -67,7 +67,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
           onChange={(e) =>
             setFormData({ ...formData, accountId: e.target.value || undefined })
           }
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="w-full px-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
         >
           <option value="">Не связывать</option>
           {accounts.map((account) => (
@@ -86,7 +86,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
       />
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-secondary mb-2">
           Иконка
         </label>
         <div className="grid grid-cols-5 gap-2">
@@ -97,7 +97,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
               className={`p-3 text-2xl rounded-lg border-2 transition-all ${
                 formData.icon === icon
                   ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  : 'border-line hover:border-line'
               }`}
               onClick={() => setFormData({ ...formData, icon })}
             >

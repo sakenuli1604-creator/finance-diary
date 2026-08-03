@@ -78,18 +78,18 @@ export const AccountDetail: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-app pb-20">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-surface border-b">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/accounts')}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-secondary hover:text-primary"
             >
               <ArrowLeft size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-primary">
               {selectedAccount.name}
             </h1>
           </div>
@@ -123,8 +123,8 @@ export const AccountDetail: React.FC = () => {
             </div>
           </div>
 
-          <p className="text-sm text-gray-600 mb-1">Баланс</p>
-          <p className="text-3xl font-bold text-gray-900">
+          <p className="text-sm text-secondary mb-1">Баланс</p>
+          <p className="text-3xl font-bold text-primary">
             {formatBalance(Number(selectedAccount.balance))}{' '}
             {selectedAccount.currency}
           </p>
@@ -134,7 +134,7 @@ export const AccountDetail: React.FC = () => {
         <div>
           <h2 className="text-lg font-semibold mb-3">История операций</h2>
           {history.length === 0 ? (
-            <Card className="p-6 text-center text-gray-500">
+            <Card className="p-6 text-center text-secondary">
               Пока нет операций
             </Card>
           ) : (
@@ -143,18 +143,18 @@ export const AccountDetail: React.FC = () => {
                 <Card key={item.id} className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-primary">
                         {item.description}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-secondary">
                         {formatDate(item.date)}
                       </p>
                     </div>
                     <p
                       className={`text-lg font-semibold ${
                         Number(item.amount) >= 0
-                          ? 'text-green-600'
-                          : 'text-red-600'
+                          ? 'text-income'
+                          : 'text-expense'
                       }`}
                     >
                       {Number(item.amount) >= 0 ? '+' : ''}

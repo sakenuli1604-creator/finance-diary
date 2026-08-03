@@ -30,13 +30,13 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
         onClick={onClose}
       />
 
-      <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-surface rounded-2xl shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         {title && (
           <div className="flex items-center justify-between p-6 border-b">
             <h2 className="text-xl font-semibold">{title}</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-secondary hover:text-primary transition-colors"
             >
               <X size={24} />
             </button>

@@ -68,18 +68,18 @@ export const Accounts: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-app pb-20">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-surface border-b">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-secondary hover:text-primary"
             >
               <ArrowLeft size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Счета</h1>
+            <h1 className="text-2xl font-bold text-primary">Счета</h1>
           </div>
         </div>
       </div>
@@ -87,8 +87,8 @@ export const Accounts: React.FC = () => {
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Total Balance */}
         <Card className="p-6">
-          <p className="text-sm text-gray-600 mb-1">Общий баланс</p>
-          <p className="text-3xl font-bold text-gray-900">
+          <p className="text-sm text-secondary mb-1">Общий баланс</p>
+          <p className="text-3xl font-bold text-primary">
             {formatBalance(totalBalance)} {primaryCurrency}
           </p>
         </Card>
@@ -118,10 +118,10 @@ export const Accounts: React.FC = () => {
 
         {/* Accounts List */}
         {isLoading ? (
-          <div className="text-center py-8 text-gray-500">Загрузка...</div>
+          <div className="text-center py-8 text-secondary">Загрузка...</div>
         ) : accounts.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 mb-4">У вас пока нет счетов</p>
+            <p className="text-secondary mb-4">У вас пока нет счетов</p>
             <Button onClick={() => setIsModalOpen(true)}>
               Создать первый счет
             </Button>

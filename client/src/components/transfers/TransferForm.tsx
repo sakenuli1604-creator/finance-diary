@@ -72,11 +72,11 @@ export const TransferForm: React.FC<TransferFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Откуда</label>
+        <label className="block text-sm font-medium text-secondary mb-2">Откуда</label>
         <select
           value={fromAccountId}
           onChange={(e) => setFromAccountId(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="w-full px-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           required
         >
           {accounts.map((account) => (
@@ -88,15 +88,15 @@ export const TransferForm: React.FC<TransferFormProps> = ({
       </div>
 
       <div className="flex justify-center">
-        <ArrowRight className="text-gray-400" size={20} />
+        <ArrowRight className="text-secondary" size={20} />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Куда</label>
+        <label className="block text-sm font-medium text-secondary mb-2">Куда</label>
         <select
           value={toAccountId}
           onChange={(e) => setToAccountId(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="w-full px-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           required
         >
           {accounts.map((account) => (
@@ -108,7 +108,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Сумма</label>
+        <label className="block text-sm font-medium text-secondary mb-2">Сумма</label>
         <div className="flex items-center gap-2">
           <input
             type="number"
@@ -116,23 +116,23 @@ export const TransferForm: React.FC<TransferFormProps> = ({
             placeholder="0"
             value={amount}
             onChange={(e) => setAmount(e.target.value ? parseFloat(e.target.value) : '')}
-            className="w-full text-3xl font-bold text-center py-3 border-b-2 border-gray-300 focus:border-blue-500 outline-none"
+            className="w-full text-3xl font-bold text-center py-3 border-b-2 border-line focus:border-blue-500 outline-none"
             required
             autoFocus
           />
-          <span className="text-2xl font-bold text-gray-400 shrink-0">
+          <span className="text-2xl font-bold text-secondary shrink-0">
             {fromAccount?.currency}
           </span>
         </div>
         {showsConversionHint && (
-          <p className="text-xs text-gray-500 mt-2 text-center">
+          <p className="text-xs text-secondary mt-2 text-center">
             Зачислится ≈ {convertedPreview!.toFixed(2)} {toAccount!.currency} по текущему курсу
           </p>
         )}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-secondary mb-2">
           Комментарий (необязательно)
         </label>
         <input
@@ -140,11 +140,11 @@ export const TransferForm: React.FC<TransferFormProps> = ({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Например: на путешествие"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="w-full px-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
         />
       </div>
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-expense text-sm">{error}</p>}
 
       <div className="flex gap-3 pt-2">
         <Button type="button" variant="secondary" onClick={onCancel} fullWidth>

@@ -24,15 +24,15 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, onClick }) =>
           </div>
 
           <div>
-            <h3 className="font-semibold text-gray-900">{account.name}</h3>
+            <h3 className="font-semibold text-primary">{account.name}</h3>
             {!account.isActive && (
-              <span className="text-xs text-gray-500">Архивирован</span>
+              <span className="text-xs text-secondary">Архивирован</span>
             )}
           </div>
         </div>
 
         <div className="text-right">
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-lg font-bold text-primary">
             {formatBalance(Number(account.balance))} {account.currency}
           </p>
         </div>

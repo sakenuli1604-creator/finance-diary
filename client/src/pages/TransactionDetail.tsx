@@ -76,18 +76,18 @@ export const TransactionDetail: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-app pb-20">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-surface border-b">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/transactions')}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-secondary hover:text-primary"
             >
               <ArrowLeft size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Детали</h1>
+            <h1 className="text-2xl font-bold text-primary">Детали</h1>
           </div>
         </div>
       </div>
@@ -125,8 +125,8 @@ export const TransactionDetail: React.FC = () => {
           <p
             className={`text-4xl font-bold mb-4 ${
               selectedTransaction.type === 'income'
-                ? 'text-green-600'
-                : 'text-red-600'
+                ? 'text-income'
+                : 'text-expense'
             }`}
           >
             {selectedTransaction.type === 'income' ? '+' : '-'}
@@ -136,26 +136,26 @@ export const TransactionDetail: React.FC = () => {
 
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">Категория:</span>
+              <span className="text-secondary">Категория:</span>
               <span className="font-medium">
                 {selectedTransaction.category?.name}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Счет:</span>
+              <span className="text-secondary">Счет:</span>
               <span className="font-medium">
                 {selectedTransaction.account?.name}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Дата:</span>
+              <span className="text-secondary">Дата:</span>
               <span className="font-medium">
                 {formatDate(selectedTransaction.transactionDate)}
               </span>
             </div>
             {selectedTransaction.shop && (
               <div className="flex justify-between">
-                <span className="text-gray-600">Магазин:</span>
+                <span className="text-secondary">Магазин:</span>
                 <span className="font-medium">{selectedTransaction.shop}</span>
               </div>
             )}
@@ -163,7 +163,7 @@ export const TransactionDetail: React.FC = () => {
 
           {selectedTransaction.description && (
             <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-600">Описание:</p>
+              <p className="text-sm text-secondary">Описание:</p>
               <p className="mt-1">{selectedTransaction.description}</p>
             </div>
           )}
@@ -193,7 +193,7 @@ export const TransactionDetail: React.FC = () => {
                     selectedTransaction.rating &&
                     rating <= selectedTransaction.rating
                       ? 'text-yellow-400 scale-110'
-                      : 'text-gray-300 hover:text-yellow-400'
+                      : 'text-secondary hover:text-yellow-400'
                   }`}
                 >
                   ★
@@ -201,7 +201,7 @@ export const TransactionDetail: React.FC = () => {
               ))}
             </div>
             {selectedTransaction.rating && (
-              <p className="text-center text-sm text-gray-600 mt-2">
+              <p className="text-center text-sm text-secondary mt-2">
                 Оценка: {selectedTransaction.rating}/5
               </p>
             )}

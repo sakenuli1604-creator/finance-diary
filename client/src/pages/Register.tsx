@@ -52,14 +52,14 @@ export const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-app px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Финансовый дневник</h1>
-          <p className="text-gray-600 mt-2">Создайте свой аккаунт</p>
+          <h1 className="text-3xl font-bold text-primary">Финансовый дневник</h1>
+          <p className="text-secondary mt-2">Создайте свой аккаунт</p>
         </div>
 
-        <div className="bg-white p-8 rounded-2xl shadow-lg">
+        <div className="bg-surface p-8 rounded-2xl shadow-lg">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               type="text"
@@ -102,7 +102,7 @@ export const Register: React.FC = () => {
             />
 
             {(error || validationError) && (
-              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-expense/10 text-expense px-4 py-3 rounded-lg text-sm">
                 {error || validationError}
               </div>
             )}
@@ -113,7 +113,7 @@ export const Register: React.FC = () => {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
+            <p className="text-secondary">
               Уже есть аккаунт?{' '}
               <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
                 Войти

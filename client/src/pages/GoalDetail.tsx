@@ -88,18 +88,18 @@ export const GoalDetail: React.FC = () => {
   const remaining = Number(selectedGoal.targetAmount) - Number(selectedGoal.currentAmount);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-app pb-20">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-surface border-b">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/goals')}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-secondary hover:text-primary"
             >
               <ArrowLeft size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-primary">
               {selectedGoal.name}
             </h1>
           </div>
@@ -126,8 +126,8 @@ export const GoalDetail: React.FC = () => {
           </div>
 
           {isCompleted && (
-            <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
-              <p className="text-green-700 font-semibold text-center">
+            <div className="mb-4 bg-income/10 border border-income/20 rounded-lg p-3">
+              <p className="text-income font-semibold text-center">
                 🎉 Цель достигнута!
               </p>
             </div>
@@ -136,12 +136,12 @@ export const GoalDetail: React.FC = () => {
           {/* Progress */}
           <div className="mb-4">
             <div className="flex justify-between mb-2">
-              <span className="text-sm text-gray-600">Прогресс</span>
-              <span className="text-sm font-semibold text-gray-900">
+              <span className="text-sm text-secondary">Прогресс</span>
+              <span className="text-sm font-semibold text-primary">
                 {Math.round(progress)}%
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-4">
+            <div className="w-full bg-muted-strong rounded-full h-4">
               <div
                 className={`h-4 rounded-full transition-all ${
                   isCompleted ? 'bg-green-500' : 'bg-blue-500'
@@ -154,14 +154,14 @@ export const GoalDetail: React.FC = () => {
           {/* Amounts */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Накоплено</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm text-secondary mb-1">Накоплено</p>
+              <p className="text-2xl font-bold text-primary">
                 {formatAmount(Number(selectedGoal.currentAmount))} ₸
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-600 mb-1">Цель</p>
-              <p className="text-2xl font-semibold text-gray-700">
+              <p className="text-sm text-secondary mb-1">Цель</p>
+              <p className="text-2xl font-semibold text-secondary">
                 {formatAmount(Number(selectedGoal.targetAmount))} ₸
               </p>
             </div>
@@ -169,9 +169,9 @@ export const GoalDetail: React.FC = () => {
 
           {!isCompleted && (
             <div className="pt-4 border-t">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-secondary">
                 Осталось накопить:{' '}
-                <span className="font-bold text-gray-900">
+                <span className="font-bold text-primary">
                   {formatAmount(remaining)} ₸
                 </span>
               </p>
@@ -180,7 +180,7 @@ export const GoalDetail: React.FC = () => {
 
           {selectedGoal.deadline && (
             <div className="pt-4 border-t mt-4">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-secondary">
                 Крайний срок:{' '}
                 <span className="font-medium">
                   {new Date(selectedGoal.deadline).toLocaleDateString('ru-RU')}
@@ -230,13 +230,13 @@ export const GoalDetail: React.FC = () => {
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-secondary mb-2">
               Списать со счета
             </label>
             <select
               value={selectedAccountId}
               onChange={(e) => setSelectedAccountId(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             >
               {accounts.map((account) => (
                 <option key={account.id} value={account.id}>
@@ -275,13 +275,13 @@ export const GoalDetail: React.FC = () => {
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-secondary mb-2">
               Зачислить на счет
             </label>
             <select
               value={selectedAccountId}
               onChange={(e) => setSelectedAccountId(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             >
               {accounts.map((account) => (
                 <option key={account.id} value={account.id}>

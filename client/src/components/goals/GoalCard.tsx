@@ -28,9 +28,9 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick }) => {
         <div className="flex items-center gap-3">
           <div className="text-3xl">{goal.icon || '🎯'}</div>
           <div>
-            <h3 className="font-semibold text-gray-900">{goal.name}</h3>
+            <h3 className="font-semibold text-primary">{goal.name}</h3>
             {daysLeft !== null && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-secondary">
                 {daysLeft > 0
                   ? `Осталось ${daysLeft} дней`
                   : daysLeft === 0
@@ -41,7 +41,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick }) => {
           </div>
         </div>
         {isCompleted && (
-          <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-1 rounded">
+          <span className="bg-income/10 text-income text-xs font-medium px-2 py-1 rounded">
             ✓ Достигнута
           </span>
         )}
@@ -49,7 +49,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick }) => {
 
       {/* Progress Bar */}
       <div className="mb-2">
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-muted-strong rounded-full h-2">
           <div
             className={`h-2 rounded-full transition-all ${
               isCompleted ? 'bg-green-500' : 'bg-blue-500'
@@ -62,14 +62,14 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick }) => {
       {/* Amounts */}
       <div className="flex justify-between items-end">
         <div>
-          <p className="text-sm text-gray-600">Накоплено</p>
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-sm text-secondary">Накоплено</p>
+          <p className="text-lg font-bold text-primary">
             {formatAmount(Number(goal.currentAmount))} ₸
           </p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-gray-600">Цель</p>
-          <p className="text-lg font-semibold text-gray-700">
+          <p className="text-sm text-secondary">Цель</p>
+          <p className="text-lg font-semibold text-secondary">
             {formatAmount(Number(goal.targetAmount))} ₸
           </p>
         </div>
@@ -78,9 +78,9 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick }) => {
       {/* Remaining */}
       {!isCompleted && (
         <div className="mt-2 pt-2 border-t">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-secondary">
             Осталось:{' '}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-primary">
               {formatAmount(Number(goal.targetAmount) - Number(goal.currentAmount))} ₸
             </span>
           </p>

@@ -45,18 +45,18 @@ export const Goals: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-app pb-20">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-surface border-b">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-secondary hover:text-primary"
             >
               <ArrowLeft size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Цели</h1>
+            <h1 className="text-2xl font-bold text-primary">Цели</h1>
           </div>
         </div>
       </div>
@@ -64,13 +64,13 @@ export const Goals: React.FC = () => {
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Total Progress */}
         <Card className="p-6">
-          <h3 className="text-sm text-gray-600 mb-2">Общий прогресс</h3>
+          <h3 className="text-sm text-secondary mb-2">Общий прогресс</h3>
           <div className="flex justify-between items-end mb-3">
             <div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-primary">
                 {formatAmount(totalSaved)} {primaryCurrency}
               </p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-secondary">
                 из {formatAmount(totalTarget)} {primaryCurrency}
               </p>
             </div>
@@ -83,7 +83,7 @@ export const Goals: React.FC = () => {
               </p>
             </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
+          <div className="w-full bg-muted-strong rounded-full h-3">
             <div
               className="bg-blue-500 h-3 rounded-full transition-all"
               style={{
@@ -109,10 +109,10 @@ export const Goals: React.FC = () => {
 
         {/* Active Goals */}
         {isLoading ? (
-          <div className="text-center py-8 text-gray-500">Загрузка...</div>
+          <div className="text-center py-8 text-secondary">Загрузка...</div>
         ) : activeGoals.length === 0 && completedGoals.length === 0 ? (
           <Card className="p-8 text-center">
-            <p className="text-gray-500 mb-4">У вас пока нет целей</p>
+            <p className="text-secondary mb-4">У вас пока нет целей</p>
             <Button onClick={() => setIsModalOpen(true)}>Создать первую цель</Button>
           </Card>
         ) : (

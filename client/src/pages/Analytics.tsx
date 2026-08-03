@@ -89,28 +89,28 @@ export const Analytics: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-app flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка аналитики...</p>
+          <p className="text-secondary">Загрузка аналитики...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-app pb-20">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
+      <div className="bg-surface border-b sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-secondary hover:text-primary"
             >
               <ArrowLeft size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Аналитика</h1>
+            <h1 className="text-2xl font-bold text-primary">Аналитика</h1>
           </div>
 
           {/* Period Selector */}
@@ -145,26 +145,26 @@ export const Analytics: React.FC = () => {
         <div className="grid grid-cols-2 gap-3">
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="text-green-600" size={20} />
-              <p className="text-sm text-gray-600">Доходы</p>
+              <TrendingUp className="text-income" size={20} />
+              <p className="text-sm text-secondary">Доходы</p>
             </div>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-2xl font-bold text-income">
               +{formatAmount(summary?.totalIncome || 0)} {primaryCurrency}
             </p>
           </Card>
 
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingDown className="text-red-600" size={20} />
-              <p className="text-sm text-gray-600">Расходы</p>
+              <TrendingDown className="text-expense" size={20} />
+              <p className="text-sm text-secondary">Расходы</p>
             </div>
-            <p className="text-2xl font-bold text-red-600">
+            <p className="text-2xl font-bold text-expense">
               -{formatAmount(summary?.totalExpense || 0)} {primaryCurrency}
             </p>
           </Card>
 
           <Card className="p-4">
-            <p className="text-sm text-gray-600 mb-2">Накопления</p>
+            <p className="text-sm text-secondary mb-2">Накопления</p>
             <p
               className={`text-2xl font-bold ${
                 (summary?.savings || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'
@@ -176,8 +176,8 @@ export const Analytics: React.FC = () => {
           </Card>
 
           <Card className="p-4">
-            <p className="text-sm text-gray-600 mb-2">Баланс</p>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-sm text-secondary mb-2">Баланс</p>
+            <p className="text-2xl font-bold text-primary">
               {formatAmount(summary?.balance || 0)} {primaryCurrency}
             </p>
           </Card>
@@ -267,7 +267,7 @@ export const Analytics: React.FC = () => {
                 .map((category, index) => (
                   <div
                     key={category.categoryId}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
                   >
                     <div className="flex items-center gap-3">
                       <div
@@ -275,19 +275,19 @@ export const Analytics: React.FC = () => {
                         style={{ backgroundColor: COLORS[index % COLORS.length] }}
                       />
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-primary">
                           {category.categoryIcon} {category.categoryName}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-secondary">
                           {category.count} операций
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-primary">
                         {formatAmount(category.total)} {primaryCurrency}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-secondary">
                         {category.percentage.toFixed(1)}%
                       </p>
                     </div>
@@ -305,23 +305,23 @@ export const Analytics: React.FC = () => {
               {topExpenses.map((expense, index) => (
                 <div
                   key={expense.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-sm">
+                    <div className="w-8 h-8 rounded-full bg-expense/10 text-expense flex items-center justify-center font-bold text-sm">
                       {index + 1}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-primary">
                         {expense.title || expense.category.name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-secondary">
                         {new Date(expense.transactionDate).toLocaleDateString('ru-RU')}
                         {expense.shop && ` • ${expense.shop}`}
                       </p>
                     </div>
                   </div>
-                  <p className="font-bold text-red-600">
+                  <p className="font-bold text-expense">
                     {formatAmount(Number(expense.amount))} {expense.currency}
                   </p>
                 </div>
@@ -333,7 +333,7 @@ export const Analytics: React.FC = () => {
         {/* No Data */}
         {!summary?.transactionCount && (
           <Card className="p-8 text-center">
-            <p className="text-gray-500 mb-4">
+            <p className="text-secondary mb-4">
               Недостаточно данных для аналитики
             </p>
             <Button onClick={() => navigate('/transactions/add')}>

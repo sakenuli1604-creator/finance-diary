@@ -19,8 +19,8 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variants = {
     primary: 'bg-blue-600 text-white hover:bg-blue-700',
-    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
-    danger: 'bg-red-600 text-white hover:bg-red-700',
+    secondary: 'bg-muted-strong text-primary hover:opacity-80',
+    danger: 'bg-expense text-white hover:opacity-90',
   };
 
   const widthClass = fullWidth ? 'w-full' : '';

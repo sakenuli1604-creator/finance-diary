@@ -69,17 +69,17 @@ export const Dashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-app flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка...</p>
+          <p className="text-secondary">Загрузка...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-app pb-24">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -97,7 +97,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Total Balance Card */}
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 p-6">
+          <Card className="bg-surface/10 backdrop-blur-lg border-white/20 p-6">
             <p className="text-blue-100 text-sm mb-2">Общий баланс</p>
             <p className="text-4xl font-bold mb-4">
               {formatAmount(totalBalance)} {primaryCurrency}
@@ -105,15 +105,15 @@ export const Dashboard: React.FC = () => {
 
             {/* Today Stats */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/10 rounded-lg p-3">
+              <div className="bg-surface/10 rounded-lg p-3">
                 <p className="text-blue-100 text-xs mb-1">Доходы сегодня</p>
-                <p className="text-lg font-semibold text-green-300">
+                <p className="text-lg font-semibold text-income">
                   +{formatAmount(todayStats.income)} {primaryCurrency}
                 </p>
               </div>
-              <div className="bg-white/10 rounded-lg p-3">
+              <div className="bg-surface/10 rounded-lg p-3">
                 <p className="text-blue-100 text-xs mb-1">Расходы сегодня</p>
-                <p className="text-lg font-semibold text-red-300">
+                <p className="text-lg font-semibold text-expense">
                   -{formatAmount(todayStats.expense)} {primaryCurrency}
                 </p>
               </div>
@@ -132,10 +132,10 @@ export const Dashboard: React.FC = () => {
               className="p-4 active:scale-95 transition-transform"
             >
               <div className="flex flex-col items-center gap-2 text-center">
-                <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 bg-expense/10 text-expense rounded-full flex items-center justify-center">
                   <TrendingDown size={24} />
                 </div>
-                <p className="font-medium text-gray-900">Добавить расход</p>
+                <p className="font-medium text-primary">Добавить расход</p>
               </div>
             </Card>
 
@@ -144,10 +144,10 @@ export const Dashboard: React.FC = () => {
               className="p-4 active:scale-95 transition-transform"
             >
               <div className="flex flex-col items-center gap-2 text-center">
-                <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 bg-income/10 text-income rounded-full flex items-center justify-center">
                   <TrendingUp size={24} />
                 </div>
-                <p className="font-medium text-gray-900">Добавить доход</p>
+                <p className="font-medium text-primary">Добавить доход</p>
               </div>
             </Card>
           </div>
@@ -156,42 +156,42 @@ export const Dashboard: React.FC = () => {
         {/* Main Menu */}
         <div className="grid grid-cols-2 gap-3">
           <Link to="/accounts">
-            <Card className="p-6 hover:bg-gray-50 transition-colors active:scale-95">
+            <Card className="p-6 hover:bg-muted transition-colors active:scale-95">
               <div className="flex items-center gap-3 mb-2">
                 <Wallet className="text-blue-600" size={24} />
-                <h3 className="font-semibold text-gray-900">Счета</h3>
+                <h3 className="font-semibold text-primary">Счета</h3>
               </div>
-              <p className="text-sm text-gray-600">Управление счетами</p>
+              <p className="text-sm text-secondary">Управление счетами</p>
             </Card>
           </Link>
 
           <Link to="/transactions">
-            <Card className="p-6 hover:bg-gray-50 transition-colors active:scale-95">
+            <Card className="p-6 hover:bg-muted transition-colors active:scale-95">
               <div className="flex items-center gap-3 mb-2">
                 <TrendingDown className="text-purple-600" size={24} />
-                <h3 className="font-semibold text-gray-900">Транзакции</h3>
+                <h3 className="font-semibold text-primary">Транзакции</h3>
               </div>
-              <p className="text-sm text-gray-600">История операций</p>
+              <p className="text-sm text-secondary">История операций</p>
             </Card>
           </Link>
 
           <Link to="/goals">
-            <Card className="p-6 hover:bg-gray-50 transition-colors active:scale-95">
+            <Card className="p-6 hover:bg-muted transition-colors active:scale-95">
               <div className="flex items-center gap-3 mb-2">
                 <Target className="text-orange-600" size={24} />
-                <h3 className="font-semibold text-gray-900">Цели</h3>
+                <h3 className="font-semibold text-primary">Цели</h3>
               </div>
-              <p className="text-sm text-gray-600">Планирование</p>
+              <p className="text-sm text-secondary">Планирование</p>
             </Card>
           </Link>
 
           <Link to="/analytics">
-            <Card className="p-6 hover:bg-gray-50 transition-colors active:scale-95">
+            <Card className="p-6 hover:bg-muted transition-colors active:scale-95">
               <div className="flex items-center gap-3 mb-2">
-                <PieChart className="text-green-600" size={24} />
-                <h3 className="font-semibold text-gray-900">Аналитика</h3>
+                <PieChart className="text-income" size={24} />
+                <h3 className="font-semibold text-primary">Аналитика</h3>
               </div>
-              <p className="text-sm text-gray-600">Статистика</p>
+              <p className="text-sm text-secondary">Статистика</p>
             </Card>
           </Link>
         </div>
@@ -218,7 +218,7 @@ export const Dashboard: React.FC = () => {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span className="text-2xl">{goal.icon || '🎯'}</span>
-                        <span className="font-medium text-gray-900">
+                        <span className="font-medium text-primary">
                           {goal.name}
                         </span>
                       </div>
@@ -226,7 +226,7 @@ export const Dashboard: React.FC = () => {
                         {Math.round(progress)}%
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-muted-strong rounded-full h-2">
                       <div
                         className="bg-blue-500 h-2 rounded-full transition-all"
                         style={{ width: `${Math.min(progress, 100)}%` }}
@@ -270,10 +270,10 @@ export const Dashboard: React.FC = () => {
                         {transaction.category?.icon || '📌'}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-primary">
                           {transaction.title || transaction.category?.name}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-secondary">
                           {formatDate(transaction.transactionDate)}
                         </p>
                       </div>
@@ -281,8 +281,8 @@ export const Dashboard: React.FC = () => {
                     <p
                       className={`font-bold ${
                         transaction.type === 'income'
-                          ? 'text-green-600'
-                          : 'text-red-600'
+                          ? 'text-income'
+                          : 'text-expense'
                       }`}
                     >
                       {transaction.type === 'income' ? '+' : '-'}
@@ -308,14 +308,14 @@ export const Dashboard: React.FC = () => {
       <Modal isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)}>
         <div className="space-y-2">
           <Link to="/categories" onClick={() => setIsMenuOpen(false)}>
-            <Card className="p-4 hover:bg-gray-50">
-              <p className="font-medium text-gray-900">Категории</p>
+            <Card className="p-4 hover:bg-muted">
+              <p className="font-medium text-primary">Категории</p>
             </Card>
           </Link>
 
           <Link to="/settings" onClick={() => setIsMenuOpen(false)}>
-            <Card className="p-4 hover:bg-gray-50">
-              <p className="font-medium text-gray-900">Настройки</p>
+            <Card className="p-4 hover:bg-muted">
+              <p className="font-medium text-primary">Настройки</p>
             </Card>
           </Link>
 
@@ -324,9 +324,9 @@ export const Dashboard: React.FC = () => {
               logout();
               setIsMenuOpen(false);
             }}
-            className="p-4 hover:bg-red-50 cursor-pointer"
+            className="p-4 hover:bg-expense/10 cursor-pointer"
           >
-            <div className="flex items-center gap-2 text-red-600">
+            <div className="flex items-center gap-2 text-expense">
               <LogOut size={20} />
               <p className="font-medium">Выйти</p>
             </div>
