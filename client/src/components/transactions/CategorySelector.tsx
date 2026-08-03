@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCategoriesStore } from '../../store/categoriesStore';
+import { categoriesAPI } from '../../api/categories';
 
 interface CategorySelectorProps {
   type: 'income' | 'expense';
@@ -13,12 +14,21 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   onSelect,
 }) => {
   const { categories, fetchCategories } = useCategoriesStore();
+  const [usageCounts, setUsageCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchCategories(type);
+    categoriesAPI
+      .getUsage(type)
+      .then(setUsageCounts)
+      .catch(() => setUsageCounts({}));
   }, [type, fetchCategories]);
 
-  const filteredCategories = categories.filter((c) => c.type === type);
+  // Часто используемые категории — первыми, дальше остальные в исходном порядке
+  const filteredCategories = categories
+    .filter((c) => c.type === type)
+    .slice()
+    .sort((a, b) => (usageCounts[b.id] || 0) - (usageCounts[a.id] || 0));
 
   return (
     <div>

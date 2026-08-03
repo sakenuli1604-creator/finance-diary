@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Filter } from 'lucide-react';
+import { ArrowLeft, Plus, Filter, Search, X } from 'lucide-react';
 import { useTransactionsStore } from '../store/transactionsStore';
 import { useAuthStore } from '../store/authStore';
 import { useExchangeRatesStore } from '../store/exchangeRatesStore';
+import { useCategoriesStore } from '../store/categoriesStore';
 import { TransactionItem } from '../components/transactions/TransactionItem';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -14,21 +15,59 @@ export const Transactions: React.FC = () => {
   const { transactions, isLoading, fetchTransactions } = useTransactionsStore();
   const { user } = useAuthStore();
   const { rates, fetchRates } = useExchangeRatesStore();
+  const { categories, fetchCategories } = useCategoriesStore();
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   const primaryCurrency = user?.primaryCurrency || '₸';
 
+  // Поиск и расширенные фильтры
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState(''); // debounced-версия searchInput
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [categoryId, setCategoryId] = useState('');
+  const [amountMin, setAmountMin] = useState('');
+  const [amountMax, setAmountMax] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  const activeAdvancedFiltersCount = [categoryId, amountMin, amountMax, dateFrom, dateTo].filter(
+    Boolean
+  ).length;
+
+  // Debounce для поля поиска — не долбим бэкенд на каждое нажатие клавиши
   useEffect(() => {
-    fetchTransactions(filter !== 'all' ? { type: filter } : undefined);
-  }, [filter, fetchTransactions]);
+    const timeout = setTimeout(() => setSearch(searchInput.trim()), 350);
+    return () => clearTimeout(timeout);
+  }, [searchInput]);
+
+  useEffect(() => {
+    fetchTransactions({
+      type: filter !== 'all' ? filter : undefined,
+      search: search || undefined,
+      categoryId: categoryId || undefined,
+      amountMin: amountMin ? parseFloat(amountMin) : undefined,
+      amountMax: amountMax ? parseFloat(amountMax) : undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+    });
+  }, [filter, search, categoryId, amountMin, amountMax, dateFrom, dateTo, fetchTransactions]);
 
   useEffect(() => {
     fetchRates();
-  }, [fetchRates]);
+    fetchCategories();
+  }, [fetchRates, fetchCategories]);
 
+  const resetAdvancedFilters = () => {
+    setCategoryId('');
+    setAmountMin('');
+    setAmountMax('');
+    setDateFrom('');
+    setDateTo('');
+  };
+
+  // Бэкенд уже применил все фильтры (включая type для income/expense не всегда,
+  // поэтому дублируем фильтр по типу и на клиенте — для мгновенного переключения вкладок)
   const filteredTransactions =
-    filter === 'all'
-      ? transactions
-      : transactions.filter((t) => t.type === filter);
+    filter === 'all' ? transactions : transactions.filter((t) => t.type === filter);
 
   const totalIncome = transactions
     .filter((t) => t.type === 'income')
@@ -65,14 +104,115 @@ export const Transactions: React.FC = () => {
               </button>
               <h1 className="text-2xl font-bold text-gray-900">Транзакции</h1>
             </div>
-            <button className="text-gray-600 hover:text-gray-900">
+            <button
+              onClick={() => setIsFilterPanelOpen((v) => !v)}
+              className="relative text-gray-600 hover:text-gray-900"
+            >
               <Filter size={24} />
+              {activeAdvancedFiltersCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-600 text-white text-[10px] rounded-full flex items-center justify-center">
+                  {activeAdvancedFiltersCount}
+                </span>
+              )}
             </button>
           </div>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* Search */}
+        <div className="relative">
+          <Search
+            size={18}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Поиск по названию, категории, магазину..."
+            className="w-full pl-10 pr-9 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+          />
+          {searchInput && (
+            <button
+              onClick={() => setSearchInput('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Advanced Filter Panel */}
+        {isFilterPanelOpen && (
+          <Card className="p-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Категория</label>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              >
+                <option value="">Все категории</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.icon} {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Сумма</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  placeholder="от"
+                  value={amountMin}
+                  onChange={(e) => setAmountMin(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+                <span className="text-gray-400">—</span>
+                <input
+                  type="number"
+                  placeholder="до"
+                  value={amountMax}
+                  onChange={(e) => setAmountMax(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Период</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+                <span className="text-gray-400">—</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+
+            {activeAdvancedFiltersCount > 0 && (
+              <button
+                onClick={resetAdvancedFilters}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                Сбросить фильтры
+              </button>
+            )}
+          </Card>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="p-4">

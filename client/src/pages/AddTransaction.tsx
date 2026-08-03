@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useTransactionsStore } from '../store/transactionsStore';
 import { TransactionForm } from '../components/transactions/TransactionForm';
 import { Button } from '../components/ui/Button';
+import { CreateTransactionData } from '../api/transactions';
 
 export const AddTransaction: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { createTransaction } = useTransactionsStore();
-  const [type, setType] = useState<'income' | 'expense'>('expense');
+  const repeatTemplate = (location.state as { repeat?: Partial<CreateTransactionData> } | null)
+    ?.repeat;
+  const [type, setType] = useState<'income' | 'expense'>(repeatTemplate?.type || 'expense');
   const [isCreating, setIsCreating] = useState(false);
 
   const handleSubmit = async (data: any) => {
@@ -43,6 +47,12 @@ export const AddTransaction: React.FC = () => {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+        {repeatTemplate && (
+          <p className="text-sm text-blue-600 bg-blue-50 rounded-lg px-4 py-2">
+            Повтор операции — проверьте сумму и счёт перед сохранением
+          </p>
+        )}
+
         {/* Type Selector */}
         <div className="flex gap-2">
           <Button
@@ -67,6 +77,7 @@ export const AddTransaction: React.FC = () => {
             type={type}
             onSubmit={handleSubmit}
             isLoading={isCreating}
+            initialData={repeatTemplate}
           />
         </div>
       </div>

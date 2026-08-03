@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Repeat } from 'lucide-react';
 import { useTransactionsStore } from '../store/transactionsStore';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -38,6 +38,23 @@ export const TransactionDetail: React.FC = () => {
     } catch (error) {
       console.error('Failed to rate:', error);
     }
+  };
+
+  const handleRepeat = () => {
+    if (!selectedTransaction) return;
+    navigate('/transactions/add', {
+      state: {
+        repeat: {
+          type: selectedTransaction.type,
+          accountId: selectedTransaction.accountId,
+          categoryId: selectedTransaction.categoryId,
+          amount: Number(selectedTransaction.amount),
+          title: selectedTransaction.title || '',
+          description: selectedTransaction.description || '',
+          shop: selectedTransaction.shop || '',
+        },
+      },
+    });
   };
 
   const formatAmount = (amount: number) => {
@@ -151,6 +168,17 @@ export const TransactionDetail: React.FC = () => {
             </div>
           )}
         </Card>
+
+        {/* Repeat */}
+        <Button
+          onClick={handleRepeat}
+          variant="secondary"
+          fullWidth
+          className="flex items-center justify-center gap-2"
+        >
+          <Repeat size={18} />
+          Повторить операцию
+        </Button>
 
         {/* Rating (for expenses) */}
         {selectedTransaction.type === 'expense' && (

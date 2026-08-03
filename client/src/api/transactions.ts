@@ -31,6 +31,9 @@ export interface TransactionFilters {
   type?: string;
   dateFrom?: string;
   dateTo?: string;
+  search?: string;
+  amountMin?: number;
+  amountMax?: number;
   limit?: number;
 }
 

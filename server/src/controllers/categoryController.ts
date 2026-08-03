@@ -27,6 +27,19 @@ class CategoryController {
     }
   }
 
+  async getUsage(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const type = req.query.type as string | undefined;
+
+      const counts = await categoryService.getUsageCounts(userId, type);
+
+      res.json(counts);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;

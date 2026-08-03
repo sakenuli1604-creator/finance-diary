@@ -7,6 +7,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', categoryController.getAll);
+router.get('/usage', categoryController.getUsage);
 router.get('/:id', categoryController.getById);
 router.post('/', categoryController.create);
 router.put('/:id', categoryController.update);

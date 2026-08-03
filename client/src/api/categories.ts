@@ -34,4 +34,11 @@ export const categoriesAPI = {
   delete: async (id: string): Promise<void> => {
     await api.delete(`/categories/${id}`);
   },
+
+  getUsage: async (type?: string): Promise<Record<string, number>> => {
+    const response = await api.get<Record<string, number>>('/categories/usage', {
+      params: { type },
+    });
+    return response.data;
+  },
 };

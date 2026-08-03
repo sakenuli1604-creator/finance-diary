@@ -34,6 +34,9 @@ export interface TransactionFilters {
   type?: string;
   dateFrom?: string;
   dateTo?: string;
+  search?: string; // поиск по названию/описанию/магазину/локации/категории
+  amountMin?: number;
+  amountMax?: number;
   limit?: number;
 }
 
@@ -73,6 +76,23 @@ class TransactionService {
       where.transactionDate = {};
       if (filters.dateFrom) where.transactionDate.gte = new Date(filters.dateFrom);
       if (filters.dateTo) where.transactionDate.lte = new Date(filters.dateTo);
+    }
+
+    if (filters.amountMin !== undefined || filters.amountMax !== undefined) {
+      where.amount = {};
+      if (filters.amountMin !== undefined) where.amount.gte = filters.amountMin;
+      if (filters.amountMax !== undefined) where.amount.lte = filters.amountMax;
+    }
+
+    if (filters.search && filters.search.trim()) {
+      const q = filters.search.trim();
+      where.OR = [
+        { title: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+        { shop: { contains: q, mode: 'insensitive' } },
+        { location: { contains: q, mode: 'insensitive' } },
+        { category: { name: { contains: q, mode: 'insensitive' } } },
+      ];
     }
 
     return prisma.transaction.findMany({

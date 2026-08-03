@@ -46,6 +46,28 @@ class CategoryService {
     return category;
   }
 
+  /**
+   * Сколько раз пользователь использовал каждую категорию (для сортировки
+   * "избранных"/часто используемых категорий первыми в выборе категории).
+   */
+  async getUsageCounts(userId: string, type?: string) {
+    const where: any = { userId };
+    if (type) where.type = type;
+
+    const grouped = await prisma.transaction.groupBy({
+      by: ['categoryId'],
+      where,
+      _count: { categoryId: true },
+    });
+
+    const counts: Record<string, number> = {};
+    grouped.forEach((g) => {
+      counts[g.categoryId] = g._count.categoryId;
+    });
+
+    return counts;
+  }
+
   async create(userId: string, data: CreateCategoryDTO) {
     if (!data.name || !data.name.trim()) {
       throw new Error('Category name is required');

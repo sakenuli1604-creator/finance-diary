@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { CategorySelector } from './CategorySelector';
@@ -9,23 +9,25 @@ interface TransactionFormProps {
   type: 'income' | 'expense';
   onSubmit: (data: CreateTransactionData) => Promise<void>;
   isLoading?: boolean;
+  initialData?: Partial<CreateTransactionData>;
 }
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({
   type,
   onSubmit,
   isLoading = false,
+  initialData,
 }) => {
   const { accounts, fetchAccounts } = useAccountsStore();
 
   const [formData, setFormData] = useState<CreateTransactionData>({
-    accountId: '',
-    categoryId: '',
+    accountId: initialData?.accountId || '',
+    categoryId: initialData?.categoryId || '',
     type,
-    amount: 0,
-    title: '',
-    description: '',
-    shop: '',
+    amount: initialData?.amount || 0,
+    title: initialData?.title || '',
+    description: initialData?.description || '',
+    shop: initialData?.shop || '',
     transactionDate: new Date().toISOString().split('T')[0],
   });
 
@@ -33,7 +35,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     fetchAccounts();
   }, [fetchAccounts]);
 
+  const isFirstTypeSync = useRef(true);
   useEffect(() => {
+    if (isFirstTypeSync.current) {
+      isFirstTypeSync.current = false;
+      setFormData((prev) => ({ ...prev, type }));
+      return;
+    }
     setFormData((prev) => ({ ...prev, type, categoryId: '' }));
   }, [type]);
 

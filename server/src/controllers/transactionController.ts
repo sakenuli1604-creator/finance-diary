@@ -6,7 +6,7 @@ class TransactionController {
   async getAll(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;
-      const { accountId, categoryId, type, dateFrom, dateTo, limit } = req.query;
+      const { accountId, categoryId, type, dateFrom, dateTo, search, amountMin, amountMax, limit } = req.query;
 
       const transactions = await transactionService.getAll(userId, {
         accountId: accountId as string,
@@ -14,6 +14,9 @@ class TransactionController {
         type: type as string,
         dateFrom: dateFrom as string,
         dateTo: dateTo as string,
+        search: search as string,
+        amountMin: amountMin ? parseFloat(amountMin as string) : undefined,
+        amountMax: amountMax ? parseFloat(amountMax as string) : undefined,
         limit: limit ? parseInt(limit as string) : undefined,
       });
 
