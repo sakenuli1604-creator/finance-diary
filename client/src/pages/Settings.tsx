@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, LogOut, Sun, Moon, Monitor } from 'lucide-react';
+import { ArrowLeft, LogOut, Sun, Moon, Monitor, Download } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore, ThemeMode } from '../store/themeStore';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { CURRENCIES } from '../utils/currency';
+import { exportAPI, downloadBlob } from '../api/export';
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -33,6 +34,25 @@ export const Settings: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const [exportingKey, setExportingKey] = useState<string | null>(null);
+
+  const handleExport = async (
+    key: 'transactions' | 'accounts' | 'goals',
+    fetcher: () => Promise<Blob>,
+    filename: string
+  ) => {
+    try {
+      setExportingKey(key);
+      const blob = await fetcher();
+      downloadBlob(blob, filename);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Не удалось скачать файл');
+    } finally {
+      setExportingKey(null);
+    }
   };
 
   const themeOptions: { value: ThemeMode; label: string; icon: React.ReactNode }[] = [
@@ -122,6 +142,61 @@ export const Settings: React.FC = () => {
             Сохранить
           </Button>
         </form>
+
+        {/* Экспорт данных */}
+        <div className="bg-surface rounded-xl shadow-sm border border-line p-6 space-y-3">
+          <label className="block text-sm font-medium text-secondary mb-1">
+            Экспорт данных (CSV)
+          </label>
+          <Button
+            variant="secondary"
+            fullWidth
+            isLoading={exportingKey === 'transactions'}
+            onClick={() =>
+              handleExport(
+                'transactions',
+                exportAPI.exportTransactions,
+                `transactions_${new Date().toISOString().split('T')[0]}.csv`
+              )
+            }
+            className="flex items-center justify-center gap-2"
+          >
+            <Download size={16} />
+            Транзакции
+          </Button>
+          <Button
+            variant="secondary"
+            fullWidth
+            isLoading={exportingKey === 'accounts'}
+            onClick={() =>
+              handleExport(
+                'accounts',
+                exportAPI.exportAccounts,
+                `accounts_${new Date().toISOString().split('T')[0]}.csv`
+              )
+            }
+            className="flex items-center justify-center gap-2"
+          >
+            <Download size={16} />
+            Счета
+          </Button>
+          <Button
+            variant="secondary"
+            fullWidth
+            isLoading={exportingKey === 'goals'}
+            onClick={() =>
+              handleExport(
+                'goals',
+                exportAPI.exportGoals,
+                `goals_${new Date().toISOString().split('T')[0]}.csv`
+              )
+            }
+            className="flex items-center justify-center gap-2"
+          >
+            <Download size={16} />
+            Цели
+          </Button>
+        </div>
 
         <button
           onClick={handleLogout}

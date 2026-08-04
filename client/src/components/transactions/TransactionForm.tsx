@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { CategorySelector } from './CategorySelector';
+import { TagSelector } from '../tags/TagSelector';
 import { useAccountsStore } from '../../store/accountsStore';
 import { CreateTransactionData } from '../../api/transactions';
 
@@ -29,6 +30,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     description: initialData?.description || '',
     shop: initialData?.shop || '',
     transactionDate: new Date().toISOString().split('T')[0],
+    tagIds: initialData?.tagIds || [],
   });
 
   useEffect(() => {
@@ -109,6 +111,12 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         type={type}
         selectedCategoryId={formData.categoryId}
         onSelect={(categoryId) => setFormData({ ...formData, categoryId })}
+      />
+
+      {/* Tags */}
+      <TagSelector
+        selectedTagIds={formData.tagIds || []}
+        onChange={(tagIds) => setFormData({ ...formData, tagIds })}
       />
 
       {/* Optional fields */}

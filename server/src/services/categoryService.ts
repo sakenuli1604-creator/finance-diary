@@ -51,7 +51,7 @@ class CategoryService {
    * "избранных"/часто используемых категорий первыми в выборе категории).
    */
   async getUsageCounts(userId: string, type?: string) {
-    const where: any = { userId };
+    const where: any = { userId, isDeleted: false };
     if (type) where.type = type;
 
     const grouped = await prisma.transaction.groupBy({

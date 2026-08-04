@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Filter, Search, X } from 'lucide-react';
+import { ArrowLeft, Plus, Filter, Search, X, Trash2 } from 'lucide-react';
 import { useTransactionsStore } from '../store/transactionsStore';
 import { useAuthStore } from '../store/authStore';
 import { useExchangeRatesStore } from '../store/exchangeRatesStore';
@@ -104,17 +104,26 @@ export const Transactions: React.FC = () => {
               </button>
               <h1 className="text-2xl font-bold text-primary">Транзакции</h1>
             </div>
-            <button
-              onClick={() => setIsFilterPanelOpen((v) => !v)}
-              className="relative text-secondary hover:text-primary"
-            >
-              <Filter size={24} />
-              {activeAdvancedFiltersCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-600 text-white text-[10px] rounded-full flex items-center justify-center">
-                  {activeAdvancedFiltersCount}
-                </span>
-              )}
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/trash')}
+                className="text-secondary hover:text-primary"
+                title="Корзина"
+              >
+                <Trash2 size={22} />
+              </button>
+              <button
+                onClick={() => setIsFilterPanelOpen((v) => !v)}
+                className="relative text-secondary hover:text-primary"
+              >
+                <Filter size={24} />
+                {activeAdvancedFiltersCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-600 text-white text-[10px] rounded-full flex items-center justify-center">
+                    {activeAdvancedFiltersCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

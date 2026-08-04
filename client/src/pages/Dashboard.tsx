@@ -13,6 +13,7 @@ import {
 import { useAuthStore } from '../store/authStore';
 import { accountsAPI } from '../api/accounts';
 import { transactionsAPI } from '../api/transactions';
+import { FeedWidget } from '../components/feed/FeedWidget';
 import { goalsAPI } from '../api/goals';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -96,10 +97,8 @@ export const Dashboard: React.FC = () => {
             </button>
           </div>
 
-          {/* Total Balance Card — стеклянная плашка поверх синего градиента,
-              заголовок всегда синий вне зависимости от темы, поэтому здесь
-              намеренно используются буквальные белые полутона, а не токены темы */}
-          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
+          {/* Total Balance Card */}
+          <Card className="bg-surface/10 backdrop-blur-lg border-white/20 p-6">
             <p className="text-blue-100 text-sm mb-2">Общий баланс</p>
             <p className="text-4xl font-bold mb-4">
               {formatAmount(totalBalance)} {primaryCurrency}
@@ -107,20 +106,20 @@ export const Dashboard: React.FC = () => {
 
             {/* Today Stats */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/10 rounded-lg p-3">
+              <div className="bg-surface/10 rounded-lg p-3">
                 <p className="text-blue-100 text-xs mb-1">Доходы сегодня</p>
-                <p className="text-lg font-semibold text-income">
+                <p className="text-lg font-semibold text-green-300">
                   +{formatAmount(todayStats.income)} {primaryCurrency}
                 </p>
               </div>
-              <div className="bg-white/10 rounded-lg p-3">
+              <div className="bg-surface/10 rounded-lg p-3">
                 <p className="text-blue-100 text-xs mb-1">Расходы сегодня</p>
-                <p className="text-lg font-semibold text-expense">
+                <p className="text-lg font-semibold text-red-300">
                   -{formatAmount(todayStats.expense)} {primaryCurrency}
                 </p>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
@@ -153,6 +152,17 @@ export const Dashboard: React.FC = () => {
               </div>
             </Card>
           </div>
+        </div>
+
+        {/* Feed */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">События</h2>
+            <Link to="/feed" className="text-blue-600 text-sm font-medium">
+              Все →
+            </Link>
+          </div>
+          <FeedWidget />
         </div>
 
         {/* Main Menu */}
@@ -312,6 +322,12 @@ export const Dashboard: React.FC = () => {
           <Link to="/categories" onClick={() => setIsMenuOpen(false)}>
             <Card className="p-4 hover:bg-muted">
               <p className="font-medium text-primary">Категории</p>
+            </Card>
+          </Link>
+
+          <Link to="/budgets" onClick={() => setIsMenuOpen(false)}>
+            <Card className="p-4 hover:bg-muted">
+              <p className="font-medium text-primary">Бюджеты</p>
             </Card>
           </Link>
 

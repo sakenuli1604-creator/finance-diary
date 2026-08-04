@@ -167,6 +167,20 @@ export const TransactionDetail: React.FC = () => {
               <p className="mt-1">{selectedTransaction.description}</p>
             </div>
           )}
+
+          {selectedTransaction.tags && selectedTransaction.tags.length > 0 && (
+            <div className="mt-4 pt-4 border-t flex flex-wrap gap-2">
+              {selectedTransaction.tags.map(({ tag }) => (
+                <span
+                  key={tag.id}
+                  className="text-xs px-2 py-1 rounded-full text-white"
+                  style={{ backgroundColor: tag.color }}
+                >
+                  #{tag.name}
+                </span>
+              ))}
+            </div>
+          )}
         </Card>
 
         {/* Repeat */}

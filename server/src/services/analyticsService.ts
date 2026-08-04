@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 class AnalyticsService {
   async getSummary(userId: string, dateFrom?: Date, dateTo?: Date) {
-    const where: any = { userId };
+    const where: any = { userId, isDeleted: false };
 
     if (dateFrom || dateTo) {
       where.transactionDate = {};
@@ -78,7 +78,7 @@ class AnalyticsService {
   }
 
   async getByCategory(userId: string, dateFrom?: Date, dateTo?: Date) {
-    const where: any = { userId };
+    const where: any = { userId, isDeleted: false };
 
     if (dateFrom || dateTo) {
       where.transactionDate = {};
@@ -160,6 +160,7 @@ class AnalyticsService {
       prisma.transaction.findMany({
         where: {
           userId,
+          isDeleted: false,
           transactionDate: {
             gte: dateFrom,
             lte: dateTo,
@@ -229,6 +230,7 @@ class AnalyticsService {
     const where: any = {
       userId,
       type: 'expense',
+      isDeleted: false,
     };
 
     if (dateFrom || dateTo) {
@@ -256,6 +258,7 @@ class AnalyticsService {
     const where: any = {
       userId,
       type: 'expense',
+      isDeleted: false,
     };
 
     if (dateFrom || dateTo) {
@@ -317,6 +320,7 @@ class AnalyticsService {
       where: {
         userId,
         type: 'expense',
+        isDeleted: false,
         rating: {
           not: null,
         },
@@ -344,6 +348,7 @@ class AnalyticsService {
       where: {
         userId,
         type: 'expense',
+        isDeleted: false,
         rating: null,
         transactionDate: {
           lte: sevenDaysAgo,
@@ -367,6 +372,7 @@ class AnalyticsService {
       where: {
         userId,
         type: 'expense',
+        isDeleted: false,
         rating: {
           lte: 2,
         },

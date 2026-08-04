@@ -11,6 +11,7 @@ export interface CreateTransactionData {
   shop?: string;
   location?: string;
   transactionDate?: string;
+  tagIds?: string[];
 }
 
 export interface UpdateTransactionData {
@@ -23,6 +24,7 @@ export interface UpdateTransactionData {
   location?: string;
   rating?: number;
   transactionDate?: string;
+  tagIds?: string[];
 }
 
 export interface TransactionFilters {
@@ -76,6 +78,28 @@ export const transactionsAPI = {
 
   getTodayStats: async (): Promise<{ income: number; expense: number }> => {
     const response = await api.get('/transactions/today-stats');
+    return response.data;
+  },
+
+  getDeleted: async (limit = 50): Promise<Transaction[]> => {
+    const response = await api.get<Transaction[]>('/transactions/deleted', {
+      params: { limit },
+    });
+    return response.data;
+  },
+
+  restore: async (id: string): Promise<void> => {
+    await api.post(`/transactions/${id}/restore`);
+  },
+
+  permanentDelete: async (id: string): Promise<void> => {
+    await api.delete(`/transactions/${id}/permanent`);
+  },
+
+  emptyTrash: async (days = 30): Promise<{ count: number }> => {
+    const response = await api.delete('/transactions/trash/empty', {
+      params: { days },
+    });
     return response.data;
   },
 };

@@ -45,6 +45,19 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
               {formatDate(transaction.transactionDate)}
               {transaction.shop && ` • ${transaction.shop}`}
             </p>
+            {transaction.tags && transaction.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {transaction.tags.map(({ tag }) => (
+                  <span
+                    key={tag.id}
+                    className="text-[11px] px-1.5 py-0.5 rounded-full text-white"
+                    style={{ backgroundColor: tag.color }}
+                  >
+                    #{tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

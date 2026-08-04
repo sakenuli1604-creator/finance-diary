@@ -12,6 +12,9 @@ import { GoalDetail } from './pages/GoalDetail';
 import { Analytics } from './pages/Analytics';
 import { Categories } from './pages/Categories';
 import { Settings } from './pages/Settings';
+import { Trash } from './pages/Trash';
+import { Budgets } from './pages/Budgets';
+import { Feed } from './pages/Feed';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { BottomNav } from './components/layout/BottomNav';
 
@@ -122,6 +125,33 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/trash"
+          element={
+            <ProtectedRoute>
+              <Trash />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/budgets"
+          element={
+            <ProtectedRoute>
+              <Budgets />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/feed"
+          element={
+            <ProtectedRoute>
+              <Feed />
             </ProtectedRoute>
           }
         />

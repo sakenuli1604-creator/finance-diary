@@ -30,6 +30,43 @@ export interface Category {
   createdAt: string;
 }
 
+export interface FeedEvent {
+  id: string;
+  type: string;
+  icon: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  severity: 'success' | 'info' | 'warning' | 'error';
+}
+
+export interface Budget {
+  id: string;
+  userId: string;
+  categoryId?: string;
+  name: string;
+  amount: number;
+  currency: string;
+  period: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  category?: Category;
+  spent?: number;
+  percentage?: number;
+  remaining?: number;
+  isOverBudget?: boolean;
+}
+
+export interface Tag {
+  id: string;
+  userId: string;
+  name: string;
+  color: string;
+  createdAt: string;
+  _count?: { transactions: number };
+}
+
 export interface Transaction {
   id: string;
   userId: string;
@@ -49,8 +86,11 @@ export interface Transaction {
   transactionDate: string;
   createdAt: string;
   updatedAt: string;
+  isDeleted?: boolean;
+  deletedAt?: string;
   account?: Account;
   category?: Category;
+  tags?: Array<{ tag: Tag }>;
 }
 
 export interface Transfer {

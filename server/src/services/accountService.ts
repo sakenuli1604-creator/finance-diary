@@ -115,7 +115,7 @@ class AccountService {
 
     const [transactions, transfersOut, transfersIn] = await Promise.all([
       prisma.transaction.findMany({
-        where: { userId, accountId },
+        where: { userId, accountId, isDeleted: false },
         include: { category: true },
         orderBy: { transactionDate: 'desc' },
         take: limit,

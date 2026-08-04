@@ -118,6 +118,54 @@ class TransactionController {
       next(error);
     }
   }
+
+  async getDeleted(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+
+      const transactions = await transactionService.getDeleted(userId, limit);
+
+      res.json(transactions);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async restore(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      await transactionService.restore(userId, req.params.id);
+
+      res.json({ message: 'Transaction restored' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async permanentDelete(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      await transactionService.permanentDelete(userId, req.params.id);
+
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async emptyTrash(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const days = req.query.days ? parseInt(req.query.days as string) : 30;
+
+      const result = await transactionService.emptyTrash(userId, days);
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new TransactionController();

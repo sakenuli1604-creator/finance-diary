@@ -14,6 +14,7 @@ export interface CreateTransactionDTO {
   shop?: string;
   location?: string;
   transactionDate?: string;
+  tagIds?: string[];
 }
 
 export interface UpdateTransactionDTO {
@@ -26,6 +27,7 @@ export interface UpdateTransactionDTO {
   location?: string;
   rating?: number;
   transactionDate?: string;
+  tagIds?: string[];
 }
 
 export interface TransactionFilters {
@@ -66,7 +68,7 @@ class TransactionService {
   }
 
   async getAll(userId: string, filters: TransactionFilters = {}) {
-    const where: any = { userId };
+    const where: any = { userId, isDeleted: false };
 
     if (filters.accountId) where.accountId = filters.accountId;
     if (filters.categoryId) where.categoryId = filters.categoryId;
@@ -97,7 +99,7 @@ class TransactionService {
 
     return prisma.transaction.findMany({
       where,
-      include: { account: true, category: true },
+      include: { account: true, category: true, tags: { include: { tag: true } } },
       orderBy: { transactionDate: 'desc' },
       take: filters.limit ?? undefined,
     });
@@ -105,12 +107,26 @@ class TransactionService {
 
   async getById(userId: string, id: string) {
     const transaction = await prisma.transaction.findFirst({
-      where: { id, userId },
-      include: { account: true, category: true },
+      where: { id, userId, isDeleted: false },
+      include: { account: true, category: true, tags: { include: { tag: true } } },
     });
 
     if (!transaction) {
       throw new Error('Transaction not found');
+    }
+
+    return transaction;
+  }
+
+  // Для операций с корзиной (восстановление/удаление навсегда) — ищем ВКЛЮЧАЯ удалённые
+  private async getTrashedById(userId: string, id: string) {
+    const transaction = await prisma.transaction.findFirst({
+      where: { id, userId, isDeleted: true },
+      include: { account: true, category: true, tags: { include: { tag: true } } },
+    });
+
+    if (!transaction) {
+      throw new Error('Transaction not found in trash');
     }
 
     return transaction;
@@ -149,8 +165,22 @@ class TransactionService {
             ? new Date(data.transactionDate)
             : new Date(),
         },
-        include: { account: true, category: true },
       });
+
+      if (data.tagIds && data.tagIds.length > 0) {
+        const validTagIds = (
+          await tx.tag.findMany({
+            where: { id: { in: data.tagIds }, userId },
+            select: { id: true },
+          })
+        ).map((t) => t.id);
+
+        if (validTagIds.length > 0) {
+          await tx.transactionTag.createMany({
+            data: validTagIds.map((tagId) => ({ transactionId: transaction.id, tagId })),
+          });
+        }
+      }
 
       // Обновляем баланс счета
       await tx.account.update({
@@ -163,7 +193,10 @@ class TransactionService {
         },
       });
 
-      return transaction;
+      return tx.transaction.findUniqueOrThrow({
+        where: { id: transaction.id },
+        include: { account: true, category: true, tags: { include: { tag: true } } },
+      });
     });
 
     return result;
@@ -246,15 +279,39 @@ class TransactionService {
             transactionDate: new Date(data.transactionDate),
           }),
         },
-        include: { account: true, category: true },
       });
 
-      return updated;
+      if (data.tagIds !== undefined) {
+        const validTagIds =
+          data.tagIds.length > 0
+            ? (
+                await tx.tag.findMany({
+                  where: { id: { in: data.tagIds }, userId },
+                  select: { id: true },
+                })
+              ).map((t) => t.id)
+            : [];
+
+        await tx.transactionTag.deleteMany({ where: { transactionId: id } });
+        if (validTagIds.length > 0) {
+          await tx.transactionTag.createMany({
+            data: validTagIds.map((tagId) => ({ transactionId: id, tagId })),
+          });
+        }
+      }
+
+      return tx.transaction.findUniqueOrThrow({
+        where: { id },
+        include: { account: true, category: true, tags: { include: { tag: true } } },
+      });
     });
 
     return result;
   }
 
+  // Мягкое удаление — операция уходит в корзину, баланс сразу пересчитывается
+  // (ровно так же, как раньше при обычном удалении), а сама запись остаётся
+  // в базе ещё 30 дней на случай, если удалили по ошибке.
   async delete(userId: string, id: string) {
     const existing = await this.getById(userId, id);
 
@@ -285,8 +342,82 @@ class TransactionService {
         },
       });
 
-      await tx.transaction.delete({ where: { id } });
+      await tx.transaction.update({
+        where: { id },
+        data: { isDeleted: true, deletedAt: new Date() },
+      });
     });
+  }
+
+  async getDeleted(userId: string, limit = 50) {
+    return prisma.transaction.findMany({
+      where: { userId, isDeleted: true },
+      include: { account: true, category: true, tags: { include: { tag: true } } },
+      orderBy: { deletedAt: 'desc' },
+      take: limit,
+    });
+  }
+
+  // Восстановить операцию из корзины — заново применяем её эффект на баланс
+  // (счёт мог за это время сменить валюту, поэтому снова конвертируем)
+  async restore(userId: string, id: string) {
+    const existing = await this.getTrashedById(userId, id);
+
+    const accountCurrency = existing.account.currency;
+    let amountInAccountCurrency = Number(existing.amount);
+    if (existing.currency !== accountCurrency) {
+      let rates: Record<string, number> = {};
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — восстанавливаем как есть
+      }
+      amountInAccountCurrency = convertAmount(
+        Number(existing.amount),
+        existing.currency,
+        accountCurrency,
+        rates
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const sign = existing.type === 'income' ? 1 : -1;
+
+      await tx.account.update({
+        where: { id: existing.accountId },
+        data: {
+          balance: { increment: sign * amountInAccountCurrency },
+        },
+      });
+
+      await tx.transaction.update({
+        where: { id },
+        data: { isDeleted: false, deletedAt: null },
+      });
+    });
+  }
+
+  // Удалить окончательно (из корзины). Баланс уже учтён при переносе в корзину,
+  // поэтому здесь его больше не трогаем.
+  async permanentDelete(userId: string, id: string) {
+    await this.getTrashedById(userId, id);
+    await prisma.transaction.delete({ where: { id } });
+  }
+
+  // Автоочистка корзины — окончательно удаляет всё, что старше N дней
+  async emptyTrash(userId: string, olderThanDays = 30) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - olderThanDays);
+
+    const result = await prisma.transaction.deleteMany({
+      where: {
+        userId,
+        isDeleted: true,
+        deletedAt: { lt: cutoff },
+      },
+    });
+
+    return { count: result.count };
   }
 
   async addRating(userId: string, id: string, rating: number) {
@@ -299,14 +430,14 @@ class TransactionService {
     return prisma.transaction.update({
       where: { id },
       data: { rating, ratingDate: new Date() },
-      include: { account: true, category: true },
+      include: { account: true, category: true, tags: { include: { tag: true } } },
     });
   }
 
   async getRecent(userId: string, limit = 10) {
     return prisma.transaction.findMany({
-      where: { userId },
-      include: { account: true, category: true },
+      where: { userId, isDeleted: false },
+      include: { account: true, category: true, tags: { include: { tag: true } } },
       orderBy: { transactionDate: 'desc' },
       take: limit,
     });
@@ -323,6 +454,7 @@ class TransactionService {
       prisma.transaction.findMany({
         where: {
           userId,
+          isDeleted: false,
           transactionDate: { gte: startOfDay, lte: endOfDay },
         },
         include: { account: { select: { currency: true } } },
