@@ -105,7 +105,7 @@ export const TransactionDetail: React.FC = () => {
               {selectedTransaction.category?.icon || '📌'}
             </div>
             <div className="flex gap-2">
-              <Button variant="secondary">
+              <Button variant="secondary" onClick={() => navigate(`/transactions/${selectedTransaction.id}/edit`)}>
                 <Edit2 size={18} />
               </Button>
               <Button

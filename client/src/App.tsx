@@ -6,6 +6,7 @@ import { Accounts } from './pages/Accounts';
 import { AccountDetail } from './pages/AccountDetail';
 import { Transactions } from './pages/Transactions';
 import { AddTransaction } from './pages/AddTransaction';
+import { EditTransaction } from './pages/EditTransaction';
 import { TransactionDetail } from './pages/TransactionDetail';
 import { Goals } from './pages/Goals';
 import { GoalDetail } from './pages/GoalDetail';
@@ -17,6 +18,7 @@ import { Budgets } from './pages/Budgets';
 import { Feed } from './pages/Feed';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { BottomNav } from './components/layout/BottomNav';
+import { InstallPWA } from './components/InstallPWA';
 
 function AppContent() {
   const location = useLocation();
@@ -71,6 +73,15 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <AddTransaction />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/transactions/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditTransaction />
             </ProtectedRoute>
           }
         />
@@ -160,6 +171,7 @@ function AppContent() {
       </Routes>
 
       {!hideNav && <BottomNav />}
+      {!hideNav && <InstallPWA />}
     </>
   );
 }

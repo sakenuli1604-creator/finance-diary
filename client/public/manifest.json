@@ -1,22 +1,25 @@
 {
   "name": "Финансовый дневник",
   "short_name": "Финансы",
-  "description": "Приложение для учета личных финансов",
+  "description": "Приложение для учёта личных финансов с аналитикой",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#3B82F6",
-  "orientation": "portrait",
+  "background_color": "#0F1115",
+  "theme_color": "#2563EB",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
-  ]
+  ],
+  "categories": ["finance", "productivity"]
 }
