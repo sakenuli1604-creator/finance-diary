@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Filter, Search, X, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Filter, Search, X, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { useTransactionsStore } from '../store/transactionsStore';
 import { useAuthStore } from '../store/authStore';
 import { useExchangeRatesStore } from '../store/exchangeRatesStore';
@@ -8,6 +8,7 @@ import { useCategoriesStore } from '../store/categoriesStore';
 import { TransactionItem } from '../components/transactions/TransactionItem';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { Amount } from '../components/ui/Amount';
 import { convertAmount } from '../utils/currency';
 
 export const Transactions: React.FC = () => {
@@ -17,6 +18,8 @@ export const Transactions: React.FC = () => {
   const { rates, fetchRates } = useExchangeRatesStore();
   const { categories, fetchCategories } = useCategoriesStore();
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'category'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const primaryCurrency = user?.primaryCurrency || '₸';
 
   // Поиск и расширенные фильтры
@@ -66,8 +69,21 @@ export const Transactions: React.FC = () => {
 
   // Бэкенд уже применил все фильтры (включая type для income/expense не всегда,
   // поэтому дублируем фильтр по типу и на клиенте — для мгновенного переключения вкладок)
-  const filteredTransactions =
-    filter === 'all' ? transactions : transactions.filter((t) => t.type === filter);
+  const filteredTransactions = (
+    filter === 'all' ? transactions : transactions.filter((t) => t.type === filter)
+  )
+    .slice()
+    .sort((a, b) => {
+      let result = 0;
+      if (sortBy === 'amount') {
+        result = Number(a.amount) - Number(b.amount);
+      } else if (sortBy === 'category') {
+        result = (a.category?.name || '').localeCompare(b.category?.name || '');
+      } else {
+        result = new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime();
+      }
+      return sortDir === 'asc' ? result : -result;
+    });
 
   const totalIncome = transactions
     .filter((t) => t.type === 'income')
@@ -227,19 +243,23 @@ export const Transactions: React.FC = () => {
           <Card className="p-4">
             <p className="text-sm text-secondary mb-1">Доходы</p>
             <p className="text-xl font-bold text-income">
-              +{formatAmount(totalIncome)} {primaryCurrency}
+              <Amount>
+                +{formatAmount(totalIncome)} {primaryCurrency}
+              </Amount>
             </p>
           </Card>
           <Card className="p-4">
             <p className="text-sm text-secondary mb-1">Расходы</p>
             <p className="text-xl font-bold text-expense">
-              -{formatAmount(totalExpense)} {primaryCurrency}
+              <Amount>
+                -{formatAmount(totalExpense)} {primaryCurrency}
+              </Amount>
             </p>
           </Card>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-2">
+        {/* Filter Tabs + Sort */}
+        <div className="flex gap-2 items-center">
           <Button
             variant={filter === 'all' ? 'primary' : 'secondary'}
             onClick={() => setFilter('all')}
@@ -258,6 +278,25 @@ export const Transactions: React.FC = () => {
           >
             Расходы
           </Button>
+
+          <div className="ml-auto flex items-center gap-1">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="text-sm px-2 py-2 border border-line rounded-lg bg-surface text-primary outline-none"
+            >
+              <option value="date">По дате</option>
+              <option value="amount">По сумме</option>
+              <option value="category">По категории</option>
+            </select>
+            <button
+              onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+              className="p-2 border border-line rounded-lg text-secondary hover:text-primary shrink-0"
+              title={sortDir === 'asc' ? 'По возрастанию' : 'По убыванию'}
+            >
+              {sortDir === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+            </button>
+          </div>
         </div>
 
         {/* Add Button */}

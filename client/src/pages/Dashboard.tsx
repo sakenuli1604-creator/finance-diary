@@ -9,11 +9,15 @@ import {
   PieChart,
   LogOut,
   Menu,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { accountsAPI } from '../api/accounts';
 import { transactionsAPI } from '../api/transactions';
 import { FeedWidget } from '../components/feed/FeedWidget';
+import { usePrivacyStore } from '../store/privacyStore';
+import { Amount } from '../components/ui/Amount';
 import { goalsAPI } from '../api/goals';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -23,6 +27,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const primaryCurrency = user?.primaryCurrency || '₸';
+  const { hidden: amountsHidden, toggle: toggleAmountsHidden } = usePrivacyStore();
 
   const [totalBalance, setTotalBalance] = useState(0);
   const [todayStats, setTodayStats] = useState({ income: 0, expense: 0 });
@@ -99,9 +104,20 @@ export const Dashboard: React.FC = () => {
 
           {/* Total Balance Card */}
           <Card className="bg-surface/10 backdrop-blur-lg border-white/20 p-6">
-            <p className="text-blue-100 text-sm mb-2">Общий баланс</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-blue-100 text-sm">Общий баланс</p>
+              <button
+                onClick={toggleAmountsHidden}
+                className="text-blue-100 hover:text-white"
+                title={amountsHidden ? 'Показать суммы' : 'Скрыть суммы'}
+              >
+                {amountsHidden ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             <p className="text-4xl font-bold mb-4">
-              {formatAmount(totalBalance)} {primaryCurrency}
+              <Amount>
+                {formatAmount(totalBalance)} {primaryCurrency}
+              </Amount>
             </p>
 
             {/* Today Stats */}
@@ -109,13 +125,17 @@ export const Dashboard: React.FC = () => {
               <div className="bg-surface/10 rounded-lg p-3">
                 <p className="text-blue-100 text-xs mb-1">Доходы сегодня</p>
                 <p className="text-lg font-semibold text-green-300">
-                  +{formatAmount(todayStats.income)} {primaryCurrency}
+                  <Amount>
+                    +{formatAmount(todayStats.income)} {primaryCurrency}
+                  </Amount>
                 </p>
               </div>
               <div className="bg-surface/10 rounded-lg p-3">
                 <p className="text-blue-100 text-xs mb-1">Расходы сегодня</p>
                 <p className="text-lg font-semibold text-red-300">
-                  -{formatAmount(todayStats.expense)} {primaryCurrency}
+                  <Amount>
+                    -{formatAmount(todayStats.expense)} {primaryCurrency}
+                  </Amount>
                 </p>
               </div>
             </div>
@@ -297,8 +317,10 @@ export const Dashboard: React.FC = () => {
                           : 'text-expense'
                       }`}
                     >
-                      {transaction.type === 'income' ? '+' : '-'}
-                      {formatAmount(Number(transaction.amount))} {transaction.currency}
+                      <Amount>
+                        {transaction.type === 'income' ? '+' : '-'}
+                        {formatAmount(Number(transaction.amount))} {transaction.currency}
+                      </Amount>
                     </p>
                   </div>
                 </Card>

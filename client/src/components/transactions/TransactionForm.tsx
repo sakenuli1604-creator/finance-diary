@@ -6,6 +6,8 @@ import { TagSelector } from '../tags/TagSelector';
 import { useAccountsStore } from '../../store/accountsStore';
 import { CreateTransactionData } from '../../api/transactions';
 
+const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000];
+
 interface TransactionFormProps {
   type: 'income' | 'expense';
   onSubmit: (data: CreateTransactionData) => Promise<void>;
@@ -103,6 +105,20 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           <span className="text-3xl font-bold text-secondary shrink-0">
             {selectedCurrency}
           </span>
+        </div>
+
+        {/* Быстрые суммы */}
+        <div className="flex flex-wrap gap-2 justify-center mt-3">
+          {QUICK_AMOUNTS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => setFormData({ ...formData, amount: preset })}
+              className="px-3 py-1.5 rounded-full text-sm font-medium bg-muted text-secondary hover:text-primary transition-colors"
+            >
+              {preset.toLocaleString('ru-RU')}
+            </button>
+          ))}
         </div>
       </div>
 

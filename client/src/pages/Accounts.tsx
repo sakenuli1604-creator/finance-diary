@@ -11,6 +11,7 @@ import { TransferForm } from '../components/transfers/TransferForm';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { Amount } from '../components/ui/Amount';
 import { convertAmount } from '../utils/currency';
 
 export const Accounts: React.FC = () => {
@@ -89,7 +90,9 @@ export const Accounts: React.FC = () => {
         <Card className="p-6">
           <p className="text-sm text-secondary mb-1">Общий баланс</p>
           <p className="text-3xl font-bold text-primary">
-            {formatBalance(totalBalance)} {primaryCurrency}
+            <Amount>
+              {formatBalance(totalBalance)} {primaryCurrency}
+            </Amount>
           </p>
         </Card>
 

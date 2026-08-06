@@ -1,6 +1,7 @@
 import React from 'react';
 import { Account } from '../../types';
 import { Card } from '../ui/Card';
+import { Amount } from '../ui/Amount';
 
 interface AccountCardProps {
   account: Account;
@@ -33,7 +34,9 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account, onClick }) =>
 
         <div className="text-right">
           <p className="text-lg font-bold text-primary">
-            {formatBalance(Number(account.balance))} {account.currency}
+            <Amount>
+              {formatBalance(Number(account.balance))} {account.currency}
+            </Amount>
           </p>
         </div>
       </div>
