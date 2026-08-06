@@ -5,6 +5,7 @@ import {
   CreateTransactionData,
   UpdateTransactionData,
   TransactionFilters,
+  CreateSplitTransactionData,
 } from '../api/transactions';
 
 interface TransactionsState {
@@ -16,6 +17,7 @@ interface TransactionsState {
   fetchTransactions: (filters?: TransactionFilters) => Promise<void>;
   fetchTransaction: (id: string) => Promise<void>;
   createTransaction: (data: CreateTransactionData) => Promise<Transaction>;
+  createSplitTransaction: (data: CreateSplitTransactionData) => Promise<Transaction[]>;
   updateTransaction: (id: string, data: UpdateTransactionData) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   addRating: (id: string, rating: number) => Promise<void>;
@@ -66,6 +68,24 @@ export const useTransactionsStore = create<TransactionsState>((set) => ({
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to create transaction',
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  createSplitTransaction: async (data: CreateSplitTransactionData) => {
+    try {
+      set({ isLoading: true, error: null });
+      const transactions = await transactionsAPI.createSplit(data);
+      set((state) => ({
+        transactions: [...transactions, ...state.transactions],
+        isLoading: false,
+      }));
+      return transactions;
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to create split transaction',
         isLoading: false,
       });
       throw error;

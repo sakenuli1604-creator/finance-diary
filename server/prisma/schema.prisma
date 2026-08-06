@@ -81,6 +81,7 @@ model Transaction {
   ratingDate      DateTime?
   isDeleted       Boolean   @default(false) // мягкое удаление — операция в корзине
   deletedAt       DateTime? // когда попала в корзину
+  splitGroupId    String? // если операция — часть разбивки по нескольким категориям
   transactionDate DateTime  @default(now())
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

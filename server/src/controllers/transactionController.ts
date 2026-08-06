@@ -72,6 +72,17 @@ class TransactionController {
     }
   }
 
+  async createSplit(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const transactions = await transactionService.createSplit(userId, req.body);
+
+      res.status(201).json(transactions);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;

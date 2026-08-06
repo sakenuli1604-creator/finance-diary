@@ -134,8 +134,16 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, o
 
               {/* Info */}
               <div>
-                <h3 className="font-medium text-primary">
+                <h3 className="font-medium text-primary flex items-center gap-1.5">
                   {transaction.title || transaction.category?.name}
+                  {transaction.splitGroupId && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-secondary font-normal"
+                      title="Часть операции, разбитой на несколько категорий"
+                    >
+                      разбито
+                    </span>
+                  )}
                 </h3>
                 <p className="text-sm text-secondary">
                   {formatDate(transaction.transactionDate)}

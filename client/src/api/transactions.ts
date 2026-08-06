@@ -39,6 +39,21 @@ export interface TransactionFilters {
   limit?: number;
 }
 
+export interface SplitPart {
+  categoryId: string;
+  amount: number;
+}
+
+export interface CreateSplitTransactionData {
+  accountId: string;
+  type: 'income' | 'expense';
+  parts: SplitPart[];
+  title?: string;
+  description?: string;
+  shop?: string;
+  transactionDate?: string;
+}
+
 export const transactionsAPI = {
   getAll: async (filters?: TransactionFilters): Promise<Transaction[]> => {
     const response = await api.get<Transaction[]>('/transactions', { params: filters });
@@ -52,6 +67,11 @@ export const transactionsAPI = {
 
   create: async (data: CreateTransactionData): Promise<Transaction> => {
     const response = await api.post<Transaction>('/transactions', data);
+    return response.data;
+  },
+
+  createSplit: async (data: CreateSplitTransactionData): Promise<Transaction[]> => {
+    const response = await api.post<Transaction[]>('/transactions/split', data);
     return response.data;
   },
 

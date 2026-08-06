@@ -3,16 +3,18 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useTransactionsStore } from '../store/transactionsStore';
 import { TransactionForm } from '../components/transactions/TransactionForm';
+import { SplitTransactionForm } from '../components/transactions/SplitTransactionForm';
 import { Button } from '../components/ui/Button';
-import { CreateTransactionData } from '../api/transactions';
+import { CreateTransactionData, CreateSplitTransactionData } from '../api/transactions';
 
 export const AddTransaction: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { createTransaction } = useTransactionsStore();
+  const { createTransaction, createSplitTransaction } = useTransactionsStore();
   const repeatTemplate = (location.state as { repeat?: Partial<CreateTransactionData> } | null)
     ?.repeat;
   const [type, setType] = useState<'income' | 'expense'>(repeatTemplate?.type || 'expense');
+  const [isSplitMode, setIsSplitMode] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
   const handleSubmit = async (data: any) => {
@@ -22,6 +24,16 @@ export const AddTransaction: React.FC = () => {
       navigate('/transactions');
     } catch (error) {
       console.error('Failed to create transaction:', error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleSplitSubmit = async (data: CreateSplitTransactionData) => {
+    setIsCreating(true);
+    try {
+      await createSplitTransaction(data);
+      navigate('/transactions');
     } finally {
       setIsCreating(false);
     }
@@ -71,14 +83,29 @@ export const AddTransaction: React.FC = () => {
           </Button>
         </div>
 
+        {/* Split mode toggle — недоступен при повторе операции */}
+        {!repeatTemplate && (
+          <button
+            type="button"
+            onClick={() => setIsSplitMode((v) => !v)}
+            className="text-sm text-blue-600 hover:text-blue-700"
+          >
+            {isSplitMode ? '← Обычная операция' : 'Разбить на несколько категорий →'}
+          </button>
+        )}
+
         {/* Form */}
         <div className="bg-surface rounded-xl shadow-sm border border-line p-6">
-          <TransactionForm
-            type={type}
-            onSubmit={handleSubmit}
-            isLoading={isCreating}
-            initialData={repeatTemplate}
-          />
+          {isSplitMode ? (
+            <SplitTransactionForm type={type} onSubmit={handleSplitSubmit} isLoading={isCreating} />
+          ) : (
+            <TransactionForm
+              type={type}
+              onSubmit={handleSubmit}
+              isLoading={isCreating}
+              initialData={repeatTemplate}
+            />
+          )}
         </div>
       </div>
     </div>

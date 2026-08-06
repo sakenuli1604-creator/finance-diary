@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { getExchangeRates } from './exchangeRateService';
 import { convertAmount } from '../utils/currency';
 
@@ -15,6 +16,21 @@ export interface CreateTransactionDTO {
   location?: string;
   transactionDate?: string;
   tagIds?: string[];
+}
+
+export interface SplitPart {
+  categoryId: string;
+  amount: number;
+}
+
+export interface CreateSplitTransactionDTO {
+  accountId: string;
+  type: 'income' | 'expense';
+  parts: SplitPart[];
+  title?: string;
+  description?: string;
+  shop?: string;
+  transactionDate?: string;
 }
 
 export interface UpdateTransactionDTO {
@@ -196,6 +212,76 @@ class TransactionService {
       return tx.transaction.findUniqueOrThrow({
         where: { id: transaction.id },
         include: { account: true, category: true, tags: { include: { tag: true } } },
+      });
+    });
+
+    return result;
+  }
+
+  // Одна операция, разбитая сразу на несколько категорий (например, чек из
+  // супермаркета: часть суммы — "Еда", часть — "Дом"). Создаёт несколько
+  // связанных транзакций (по одной на категорию) с общим splitGroupId,
+  // баланс счёта списывается/начисляется один раз на общую сумму.
+  async createSplit(userId: string, data: CreateSplitTransactionDTO) {
+    if (!data.accountId) {
+      throw new Error('accountId is required');
+    }
+    if (data.type !== 'income' && data.type !== 'expense') {
+      throw new Error('type must be income or expense');
+    }
+    if (!data.parts || data.parts.length < 2) {
+      throw new Error('Split requires at least 2 parts');
+    }
+    for (const part of data.parts) {
+      if (!part.categoryId || !part.amount || part.amount <= 0) {
+        throw new Error('Each part needs a categoryId and a positive amount');
+      }
+    }
+
+    const account = await this.assertAccountOwnership(userId, data.accountId);
+    for (const part of data.parts) {
+      await this.assertCategoryOwnership(userId, part.categoryId);
+    }
+
+    const totalAmount = data.parts.reduce((sum, p) => sum + p.amount, 0);
+    const splitGroupId = randomUUID();
+    const transactionDate = data.transactionDate ? new Date(data.transactionDate) : new Date();
+
+    const result = await prisma.$transaction(async (tx) => {
+      const created = [];
+      for (const part of data.parts) {
+        const transaction = await tx.transaction.create({
+          data: {
+            userId,
+            accountId: data.accountId,
+            categoryId: part.categoryId,
+            type: data.type,
+            amount: part.amount,
+            currency: account.currency,
+            title: data.title,
+            description: data.description,
+            shop: data.shop,
+            splitGroupId,
+            transactionDate,
+          },
+        });
+        created.push(transaction.id);
+      }
+
+      await tx.account.update({
+        where: { id: data.accountId },
+        data: {
+          balance:
+            data.type === 'income'
+              ? { increment: totalAmount }
+              : { decrement: totalAmount },
+        },
+      });
+
+      return tx.transaction.findMany({
+        where: { id: { in: created } },
+        include: { account: true, category: true, tags: { include: { tag: true } } },
+        orderBy: { createdAt: 'asc' },
       });
     });
 

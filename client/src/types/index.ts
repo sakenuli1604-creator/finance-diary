@@ -87,6 +87,7 @@ export interface Transaction {
   createdAt: string;
   updatedAt: string;
   isDeleted?: boolean;
+  splitGroupId?: string;
   deletedAt?: string;
   account?: Account;
   category?: Category;
