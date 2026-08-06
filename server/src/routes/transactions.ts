@@ -10,6 +10,7 @@ router.use(authenticate);
 router.get('/recent', transactionController.getRecent);
 router.get('/today-stats', transactionController.getTodayStats);
 router.get('/deleted', transactionController.getDeleted);
+router.get('/shops', transactionController.getShopSuggestions);
 router.delete('/trash/empty', transactionController.emptyTrash);
 
 router.get('/', transactionController.getAll);

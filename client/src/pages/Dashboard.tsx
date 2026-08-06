@@ -23,11 +23,20 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 5) return 'Доброй ночи';
+  if (hour < 12) return 'Доброе утро';
+  if (hour < 18) return 'Добрый день';
+  return 'Добрый вечер';
+}
+
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const primaryCurrency = user?.primaryCurrency || '₸';
   const { hidden: amountsHidden, toggle: toggleAmountsHidden } = usePrivacyStore();
+  const greeting = getGreeting();
 
   const [totalBalance, setTotalBalance] = useState(0);
   const [todayStats, setTodayStats] = useState({ income: 0, expense: 0 });
@@ -91,7 +100,7 @@ export const Dashboard: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-blue-100 text-sm">Добро пожаловать,</p>
+              <p className="text-blue-100 text-sm">{greeting},</p>
               <h1 className="text-2xl font-bold">{user?.name} 👋</h1>
             </div>
             <button
@@ -350,6 +359,12 @@ export const Dashboard: React.FC = () => {
           <Link to="/budgets" onClick={() => setIsMenuOpen(false)}>
             <Card className="p-4 hover:bg-muted">
               <p className="font-medium text-primary">Бюджеты</p>
+            </Card>
+          </Link>
+
+          <Link to="/converter" onClick={() => setIsMenuOpen(false)}>
+            <Card className="p-4 hover:bg-muted">
+              <p className="font-medium text-primary">Конвертер валют</p>
             </Card>
           </Link>
 

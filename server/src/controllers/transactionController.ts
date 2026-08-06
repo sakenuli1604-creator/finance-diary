@@ -130,6 +130,15 @@ class TransactionController {
     }
   }
 
+  async getShopSuggestions(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const suggestions = await transactionService.getShopSuggestions(req.userId!);
+      res.json(suggestions);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getDeleted(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;

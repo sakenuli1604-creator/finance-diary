@@ -435,6 +435,29 @@ class TransactionService {
     });
   }
 
+  // Магазины, которые пользователь уже вводил раньше — для автоподстановки в форме
+  async getShopSuggestions(userId: string): Promise<string[]> {
+    const transactions = await prisma.transaction.findMany({
+      where: { userId, isDeleted: false, shop: { not: null } },
+      select: { shop: true },
+      orderBy: { transactionDate: 'desc' },
+      take: 200, // достаточно недавней истории, не гоняем всю таблицу
+    });
+
+    const seen = new Set<string>();
+    const suggestions: string[] = [];
+    for (const t of transactions) {
+      const shop = t.shop?.trim();
+      if (shop && !seen.has(shop.toLowerCase())) {
+        seen.add(shop.toLowerCase());
+        suggestions.push(shop);
+      }
+      if (suggestions.length >= 20) break;
+    }
+
+    return suggestions;
+  }
+
   async getDeleted(userId: string, limit = 50) {
     return prisma.transaction.findMany({
       where: { userId, isDeleted: true },

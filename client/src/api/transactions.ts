@@ -101,6 +101,11 @@ export const transactionsAPI = {
     return response.data;
   },
 
+  getShopSuggestions: async (): Promise<string[]> => {
+    const response = await api.get<string[]>('/transactions/shops');
+    return response.data;
+  },
+
   getDeleted: async (limit = 50): Promise<Transaction[]> => {
     const response = await api.get<Transaction[]>('/transactions/deleted', {
       params: { limit },

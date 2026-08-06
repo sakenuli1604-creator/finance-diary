@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { CategorySelector } from './CategorySelector';
 import { TagSelector } from '../tags/TagSelector';
 import { useAccountsStore } from '../../store/accountsStore';
-import { CreateTransactionData } from '../../api/transactions';
+import { CreateTransactionData, transactionsAPI } from '../../api/transactions';
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000];
 
@@ -22,6 +22,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   initialData,
 }) => {
   const { accounts, fetchAccounts } = useAccountsStore();
+  const [shopSuggestions, setShopSuggestions] = useState<string[]>([]);
 
   const [formData, setFormData] = useState<CreateTransactionData>({
     accountId: initialData?.accountId || '',
@@ -38,6 +39,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   useEffect(() => {
     fetchAccounts();
   }, [fetchAccounts]);
+
+  useEffect(() => {
+    transactionsAPI
+      .getShopSuggestions()
+      .then(setShopSuggestions)
+      .catch(() => setShopSuggestions([]));
+  }, []);
 
   const isFirstTypeSync = useRef(true);
   useEffect(() => {
@@ -153,7 +161,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             placeholder="Например: Magnum"
             value={formData.shop}
             onChange={(e) => setFormData({ ...formData, shop: e.target.value })}
+            list="shop-suggestions"
           />
+          <datalist id="shop-suggestions">
+            {shopSuggestions.map((shop) => (
+              <option key={shop} value={shop} />
+            ))}
+          </datalist>
 
           <div>
             <label className="block text-sm font-medium text-secondary mb-1">

@@ -16,6 +16,7 @@ import { Settings } from './pages/Settings';
 import { Trash } from './pages/Trash';
 import { Budgets } from './pages/Budgets';
 import { Feed } from './pages/Feed';
+import { Converter } from './pages/Converter';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { BottomNav } from './components/layout/BottomNav';
 import { InstallPWA } from './components/InstallPWA';
@@ -163,6 +164,15 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <Feed />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/converter"
+          element={
+            <ProtectedRoute>
+              <Converter />
             </ProtectedRoute>
           }
         />

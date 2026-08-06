@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useTransactionsStore } from '../store/transactionsStore';
 import { TransactionForm } from '../components/transactions/TransactionForm';
@@ -10,10 +10,14 @@ import { CreateTransactionData, CreateSplitTransactionData } from '../api/transa
 export const AddTransaction: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { createTransaction, createSplitTransaction } = useTransactionsStore();
   const repeatTemplate = (location.state as { repeat?: Partial<CreateTransactionData> } | null)
     ?.repeat;
-  const [type, setType] = useState<'income' | 'expense'>(repeatTemplate?.type || 'expense');
+  const typeFromQuery = searchParams.get('type');
+  const initialType: 'income' | 'expense' =
+    repeatTemplate?.type || (typeFromQuery === 'income' ? 'income' : 'expense');
+  const [type, setType] = useState<'income' | 'expense'>(initialType);
   const [isSplitMode, setIsSplitMode] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 

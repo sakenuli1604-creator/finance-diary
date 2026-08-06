@@ -67,6 +67,24 @@ export const Transactions: React.FC = () => {
     setDateTo('');
   };
 
+  const applyQuickDateRange = (preset: 'today' | 'week' | 'month') => {
+    const now = new Date();
+    const toStr = (d: Date) => d.toISOString().split('T')[0];
+
+    let from: Date;
+    if (preset === 'today') {
+      from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (preset === 'week') {
+      from = new Date(now);
+      from.setDate(now.getDate() - now.getDay() + 1); // с понедельника
+    } else {
+      from = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    setDateFrom(toStr(from));
+    setDateTo(toStr(now));
+  };
+
   // Бэкенд уже применил все фильтры (включая type для income/expense не всегда,
   // поэтому дублируем фильтр по типу и на клиенте — для мгновенного переключения вкладок)
   const filteredTransactions = (
@@ -210,6 +228,20 @@ export const Transactions: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-secondary mb-2">Период</label>
+
+              <div className="flex flex-wrap gap-2 mb-2">
+                {(['today', 'week', 'month'] as const).map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => applyQuickDateRange(preset)}
+                    className="px-3 py-1.5 rounded-full text-sm font-medium bg-muted text-secondary hover:text-primary transition-colors"
+                  >
+                    {preset === 'today' ? 'Сегодня' : preset === 'week' ? 'Неделя' : 'Месяц'}
+                  </button>
+                ))}
+              </div>
+
               <div className="flex items-center gap-2">
                 <input
                   type="date"
