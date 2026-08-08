@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Filter, Search, X, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowLeft, Plus, Filter, Search, X, Trash2, ArrowUp, ArrowDown, FileUp } from 'lucide-react';
 import { useTransactionsStore } from '../store/transactionsStore';
 import { useAuthStore } from '../store/authStore';
 import { useExchangeRatesStore } from '../store/exchangeRatesStore';
@@ -139,6 +139,13 @@ export const Transactions: React.FC = () => {
               <h1 className="text-2xl font-bold text-primary">Транзакции</h1>
             </div>
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/transactions/import')}
+                className="text-secondary hover:text-primary"
+                title="Импорт из выписки"
+              >
+                <FileUp size={22} />
+              </button>
               <button
                 onClick={() => navigate('/trash')}
                 className="text-secondary hover:text-primary"

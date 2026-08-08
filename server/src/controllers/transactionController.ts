@@ -83,6 +83,22 @@ class TransactionController {
     }
   }
 
+  async bulkImport(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { accountId, rows } = req.body;
+
+      if (!accountId || !Array.isArray(rows)) {
+        return res.status(400).json({ message: 'accountId and rows are required' });
+      }
+
+      const result = await transactionService.bulkImport(userId, accountId, rows);
+      res.status(201).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;

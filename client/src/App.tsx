@@ -1,3 +1,4 @@
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -17,6 +18,9 @@ import { Trash } from './pages/Trash';
 import { Budgets } from './pages/Budgets';
 import { Feed } from './pages/Feed';
 import { Converter } from './pages/Converter';
+const ImportTransactions = React.lazy(() =>
+  import('./pages/ImportTransactions').then((m) => ({ default: m.ImportTransactions }))
+);
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { BottomNav } from './components/layout/BottomNav';
 import { InstallPWA } from './components/InstallPWA';
@@ -173,6 +177,23 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <Converter />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/transactions/import"
+          element={
+            <ProtectedRoute>
+              <Suspense
+                fallback={
+                  <div className="min-h-screen bg-app flex items-center justify-center text-secondary">
+                    Загрузка...
+                  </div>
+                }
+              >
+                <ImportTransactions />
+              </Suspense>
             </ProtectedRoute>
           }
         />

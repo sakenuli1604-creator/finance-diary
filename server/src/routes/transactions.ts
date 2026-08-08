@@ -16,6 +16,7 @@ router.delete('/trash/empty', transactionController.emptyTrash);
 router.get('/', transactionController.getAll);
 router.post('/', transactionController.create);
 router.post('/split', transactionController.createSplit);
+router.post('/import', transactionController.bulkImport);
 router.get('/:id', transactionController.getById);
 router.put('/:id', transactionController.update);
 router.delete('/:id', transactionController.delete);

@@ -23,6 +23,14 @@ export interface SplitPart {
   amount: number;
 }
 
+export interface ImportRow {
+  date: string; // ISO-строка
+  amount: number; // всегда положительное число
+  type: 'income' | 'expense';
+  title?: string;
+  categoryId: string;
+}
+
 export interface CreateSplitTransactionDTO {
   accountId: string;
   type: 'income' | 'expense';
@@ -283,6 +291,67 @@ class TransactionService {
         include: { account: true, category: true, tags: { include: { tag: true } } },
         orderBy: { createdAt: 'asc' },
       });
+    });
+
+    return result;
+  }
+
+  // Массовый импорт из выписки банка (CSV/Excel) — сам файл парсится на
+  // фронте, сюда прилетают уже готовые нормализованные строки.
+  async bulkImport(userId: string, accountId: string, rows: ImportRow[]) {
+    if (!rows || rows.length === 0) {
+      throw new Error('No rows to import');
+    }
+    if (rows.length > 1000) {
+      throw new Error('Too many rows in one import (max 1000)');
+    }
+
+    const account = await this.assertAccountOwnership(userId, accountId);
+
+    const categoryIds = Array.from(new Set(rows.map((r) => r.categoryId)));
+    for (const categoryId of categoryIds) {
+      await this.assertCategoryOwnership(userId, categoryId);
+    }
+
+    let incomeTotal = 0;
+    let expenseTotal = 0;
+    for (const row of rows) {
+      if (row.amount <= 0) continue;
+      if (row.type === 'income') incomeTotal += row.amount;
+      else expenseTotal += row.amount;
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      let createdCount = 0;
+
+      for (const row of rows) {
+        if (!row.amount || row.amount <= 0) continue;
+
+        await tx.transaction.create({
+          data: {
+            userId,
+            accountId,
+            categoryId: row.categoryId,
+            type: row.type,
+            amount: row.amount,
+            currency: account.currency,
+            title: row.title,
+            transactionDate: new Date(row.date),
+          },
+        });
+        createdCount++;
+      }
+
+      await tx.account.update({
+        where: { id: accountId },
+        data: {
+          balance: {
+            increment: incomeTotal - expenseTotal,
+          },
+        },
+      });
+
+      return { imported: createdCount };
     });
 
     return result;

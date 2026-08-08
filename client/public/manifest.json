@@ -21,5 +21,19 @@
       "purpose": "any"
     }
   ],
-  "categories": ["finance", "productivity"]
+  "categories": ["finance", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Добавить расход",
+      "short_name": "Расход",
+      "url": "/transactions/add?type=expense",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Добавить доход",
+      "short_name": "Доход",
+      "url": "/transactions/add?type=income",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
 }

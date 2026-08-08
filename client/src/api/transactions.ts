@@ -54,6 +54,14 @@ export interface CreateSplitTransactionData {
   transactionDate?: string;
 }
 
+export interface ImportRow {
+  date: string;
+  amount: number;
+  type: 'income' | 'expense';
+  title?: string;
+  categoryId: string;
+}
+
 export const transactionsAPI = {
   getAll: async (filters?: TransactionFilters): Promise<Transaction[]> => {
     const response = await api.get<Transaction[]>('/transactions', { params: filters });
@@ -72,6 +80,14 @@ export const transactionsAPI = {
 
   createSplit: async (data: CreateSplitTransactionData): Promise<Transaction[]> => {
     const response = await api.post<Transaction[]>('/transactions/split', data);
+    return response.data;
+  },
+
+  bulkImport: async (accountId: string, rows: ImportRow[]): Promise<{ imported: number }> => {
+    const response = await api.post<{ imported: number }>('/transactions/import', {
+      accountId,
+      rows,
+    });
     return response.data;
   },
 
