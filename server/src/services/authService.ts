@@ -58,22 +58,11 @@ class AuthService {
     where: { email: data.email },
   });
 
-  console.log('[LOGIN] email:', JSON.stringify(data.email));
-  console.log('[LOGIN] user found:', !!user);
-
   if (!user) {
     throw new Error('Invalid credentials');
   }
 
-  console.log('[LOGIN] stored password hash prefix:', user.password.substring(0, 7));
-  console.log('[LOGIN] stored password hash length:', user.password.length);
-
-  const isValidPassword = await bcrypt.compare(
-    data.password,
-    user.password
-  );
-
-  console.log('[LOGIN] bcrypt result:', isValidPassword);
+  const isValidPassword = await bcrypt.compare(data.password, user.password);
 
   if (!isValidPassword) {
     throw new Error('Invalid credentials');
