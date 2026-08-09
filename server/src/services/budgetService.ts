@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { getExchangeRates } from './exchangeRateService';
 import { convertAmount } from '../utils/currency';
 
-const prisma = new PrismaClient();
 
 export interface CreateBudgetDTO {
   categoryId?: string;
@@ -31,7 +30,11 @@ function getPeriodRange(period: string): { start: Date; end: Date } {
   if (period === 'weekly') {
     const start = new Date(now);
     start.setHours(0, 0, 0, 0);
-    start.setDate(now.getDate() - now.getDay());
+    // getDay(): 0 = воскресенье. Приводим к понедельнику как началу недели
+    // (у нас в СНГ неделя начинается с понедельника, не с воскресенья).
+    const dayOfWeek = now.getDay();
+    const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    start.setDate(now.getDate() - diffToMonday);
     const end = new Date(start);
     end.setDate(start.getDate() + 7);
     return { start, end };

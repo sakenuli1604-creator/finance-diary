@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { getExchangeRates } from './exchangeRateService';
 import { convertAmount } from '../utils/currency';
 
-const prisma = new PrismaClient();
 
 class AnalyticsService {
   async getSummary(userId: string, dateFrom?: Date, dateTo?: Date) {
@@ -145,10 +144,8 @@ class AnalyticsService {
       .reduce((sum, c) => sum + c.total, 0);
 
     result.forEach((c) => {
-      c.percentage =
-        c.type === 'expense'
-          ? (c.total / totalExpense) * 100
-          : (c.total / totalIncome) * 100;
+      const base = c.type === 'expense' ? totalExpense : totalIncome;
+      c.percentage = base > 0 ? (c.total / base) * 100 : 0;
     });
 
     return result.sort((a, b) => b.total - a.total);
@@ -198,7 +195,9 @@ class AnalyticsService {
         dateKey = date.toISOString().split('T')[0];
       } else if (groupBy === 'week') {
         const weekStart = new Date(date);
-        weekStart.setDate(date.getDate() - date.getDay());
+        const dayOfWeek = date.getDay();
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        weekStart.setDate(date.getDate() - diffToMonday);
         dateKey = weekStart.toISOString().split('T')[0];
       } else {
         dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;

@@ -66,5 +66,17 @@ export const errorHandler = (
     return res.status(400).json({ message: err.message });
   }
 
+  // Явных совпадений не нашлось — вместо того чтобы молча падать в 500,
+  // угадываем статус по смыслу сообщения. Это подстраховка на случай, если
+  // где-то в сервисах появится новая ошибка, которую забыли прописать выше
+  // (так уже бывало — часть сообщений из более новых фич сюда не попадала).
+  const message: string = err.message || '';
+  if (/not found/i.test(message)) {
+    return res.status(404).json({ message });
+  }
+  if (/required|must be|cannot|invalid|already exists|insufficient/i.test(message)) {
+    return res.status(400).json({ message });
+  }
+
   res.status(500).json({ message: 'Internal server error' });
 };

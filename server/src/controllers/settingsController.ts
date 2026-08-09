@@ -1,10 +1,8 @@
 import { Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middlewares/auth';
 import { getExchangeRates } from '../services/exchangeRateService';
 import { SUPPORTED_CURRENCIES } from '../utils/currency';
-
-const prisma = new PrismaClient();
 
 const PROFILE_SELECT = {
   id: true,

@@ -12,7 +12,7 @@ interface AccountsState {
   fetchAccount: (id: string) => Promise<void>;
   createAccount: (data: CreateAccountData) => Promise<Account>;
   updateAccount: (id: string, data: UpdateAccountData) => Promise<void>;
-  deleteAccount: (id: string) => Promise<void>;
+  deleteAccount: (id: string) => Promise<boolean>;
   clearError: () => void;
 }
 
@@ -90,11 +90,25 @@ export const useAccountsStore = create<AccountsState>((set, get) => ({
   deleteAccount: async (id: string) => {
     try {
       set({ isLoading: true, error: null });
-      await accountsAPI.delete(id);
-      set((state) => ({
-        accounts: state.accounts.filter((acc) => acc.id !== id),
-        isLoading: false,
-      }));
+      const { archived } = await accountsAPI.delete(id);
+
+      if (archived) {
+        // Счёт не удалился, а заархивировался (есть история операций) —
+        // обновляем его в списке, а не убираем совсем
+        set((state) => ({
+          accounts: state.accounts.map((acc) =>
+            acc.id === id ? { ...acc, isActive: false } : acc
+          ),
+          isLoading: false,
+        }));
+      } else {
+        set((state) => ({
+          accounts: state.accounts.filter((acc) => acc.id !== id),
+          isLoading: false,
+        }));
+      }
+
+      return archived;
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to delete account',

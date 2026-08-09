@@ -1,9 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { randomUUID } from 'crypto';
 import { getExchangeRates } from './exchangeRateService';
 import { convertAmount } from '../utils/currency';
 
-const prisma = new PrismaClient();
 
 export interface CreateTransactionDTO {
   accountId: string;
@@ -125,7 +124,9 @@ class TransactionService {
       where,
       include: { account: true, category: true, tags: { include: { tag: true } } },
       orderBy: { transactionDate: 'desc' },
-      take: filters.limit ?? undefined,
+      // Без явного лимита отдаём разумный дефолт, а не всю историю целиком —
+      // иначе с ростом количества операций ответ будет только пухнуть.
+      take: filters.limit ?? 500,
     });
   }
 

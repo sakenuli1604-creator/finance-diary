@@ -1,9 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { getExchangeRates } from './exchangeRateService';
 import { convertAmount } from '../utils/currency';
 import budgetService from './budgetService';
 
-const prisma = new PrismaClient();
 
 export interface FeedEvent {
   id: string;

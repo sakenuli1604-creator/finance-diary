@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { getExchangeRates } from './exchangeRateService';
 import { convertAmount } from '../utils/currency';
 
-const prisma = new PrismaClient();
 
 export interface CreateTransferDTO {
   fromAccountId: string;
@@ -107,12 +106,20 @@ class TransferService {
         },
       });
 
-      await tx.account.update({
+      // Списываем со счёта-источника и сразу проверяем итоговый баланс.
+      // UPDATE в Postgres блокирует строку до конца транзакции — это и
+      // защищает от гонки, если два перевода с одного счёта прилетят
+      // одновременно (внешняя проверка выше — просто быстрый предварительный
+      // отказ, а настоящая защита именно здесь).
+      const updatedFrom = await tx.account.update({
         where: { id: data.fromAccountId },
         data: {
           balance: { decrement: data.amount },
         },
       });
+      if (Number(updatedFrom.balance) < 0) {
+        throw new Error('Insufficient funds');
+      }
 
       await tx.account.update({
         where: { id: data.toAccountId },

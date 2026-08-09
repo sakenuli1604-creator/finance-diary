@@ -75,8 +75,10 @@ export const Transactions: React.FC = () => {
     if (preset === 'today') {
       from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     } else if (preset === 'week') {
+      const dayOfWeek = now.getDay(); // 0 = воскресенье
+      const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       from = new Date(now);
-      from.setDate(now.getDate() - now.getDay() + 1); // с понедельника
+      from.setDate(now.getDate() - diffToMonday);
     } else {
       from = new Date(now.getFullYear(), now.getMonth(), 1);
     }

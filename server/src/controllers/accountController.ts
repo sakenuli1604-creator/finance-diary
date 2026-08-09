@@ -46,8 +46,8 @@ class AccountController {
   async delete(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;
-      await accountService.delete(userId, req.params.id);
-      res.status(204).send();
+      const result = await accountService.delete(userId, req.params.id);
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }

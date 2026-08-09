@@ -39,8 +39,9 @@ export const accountsAPI = {
     return response.data;
   },
 
-  delete: async (id: string): Promise<void> => {
-    await api.delete(`/accounts/${id}`);
+  delete: async (id: string): Promise<{ archived: boolean }> => {
+    const response = await api.delete<{ archived: boolean }>(`/accounts/${id}`);
+    return response.data;
   },
 
   getTotalBalance: async (): Promise<number> => {

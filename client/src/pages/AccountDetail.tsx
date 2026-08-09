@@ -52,7 +52,10 @@ export const AccountDetail: React.FC = () => {
 
     try {
       setIsDeleting(true);
-      await deleteAccount(id!);
+      const archived = await deleteAccount(id!);
+      if (archived) {
+        alert('У этого счёта есть операции, поэтому он не удалён, а архивирован — история сохранена, но счёт больше не активен.');
+      }
       navigate('/accounts');
     } catch (error) {
       console.error('Failed to delete account:', error);

@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { getExchangeRates } from './exchangeRateService';
 import { convertAmount } from '../utils/currency';
 
-const prisma = new PrismaClient();
 
 export interface CreateAccountDTO {
   name: string;
@@ -77,7 +76,26 @@ class AccountService {
 
   async delete(userId: string, id: string) {
     await this.getById(userId, id);
+
+    const [txCount, transferCount] = await Promise.all([
+      prisma.transaction.count({ where: { accountId: id } }),
+      prisma.transfer.count({
+        where: { OR: [{ fromAccountId: id }, { toAccountId: id }] },
+      }),
+    ]);
+
+    if (txCount > 0 || transferCount > 0) {
+      // У счёта есть история операций — жёсткое удаление либо упадёт с
+      // ошибкой внешнего ключа, либо (для транзакций, у которых onDelete:
+      // Cascade) молча снесёт всю историю вместе со счётом. Ни то, ни другое
+      // не нужно — архивируем вместо удаления, счёт просто перестаёт
+      // считаться активным, но операции остаются на месте.
+      await prisma.account.update({ where: { id }, data: { isActive: false } });
+      return { archived: true };
+    }
+
     await prisma.account.delete({ where: { id } });
+    return { archived: false };
   }
 
   async getTotalBalance(userId: string) {
@@ -147,12 +165,17 @@ class AccountService {
         description: `Перевод → ${t.toAccount?.name ?? ''}`.trim(),
         date: t.createdAt,
         amount: -Number(t.amount),
+        currency: t.currency,
       })),
       ...transfersIn.map((t) => ({
         id: t.id,
         description: `Перевод ← ${t.fromAccount?.name ?? ''}`.trim(),
         date: t.createdAt,
-        amount: Number(t.amount),
+        // Важно: показываем именно зачисленную сумму в валюте ПОЛУЧАТЕЛЯ,
+        // а не сумму списания у отправителя — если валюты счетов разные,
+        // это разные числа.
+        amount: Number(t.receivedAmount),
+        currency: t.toCurrency,
       })),
     ];
 

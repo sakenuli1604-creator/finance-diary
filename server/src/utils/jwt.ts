@@ -1,6 +1,14 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+// Никакого fallback-значения — если секрет не задан в переменных окружения,
+// сервер должен упасть при старте, а не тихо подписывать токены предсказуемым
+// ключом (иначе кто угодно сможет подделать токен для чужого аккаунта).
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error(
+    'JWT_SECRET environment variable is not set. Set it in Railway → Variables before starting the server.'
+  );
+}
 
 export interface JwtPayload {
   userId: string;

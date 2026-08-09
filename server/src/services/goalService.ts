@@ -1,6 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
+import { getExchangeRates } from './exchangeRateService';
+import { convertAmount } from '../utils/currency';
 
-const prisma = new PrismaClient();
 
 export interface CreateGoalDTO {
   name: string;
@@ -115,14 +116,9 @@ class GoalService {
 
     const goal = await this.getById(goalId, userId);
 
-    // Проверяем счет
     const account = await prisma.account.findFirst({
-      where: {
-        id: accountId,
-        userId,
-      },
+      where: { id: accountId, userId },
     });
-
     if (!account) {
       throw new Error('Account not found');
     }
@@ -131,31 +127,52 @@ class GoalService {
       throw new Error('Insufficient funds');
     }
 
-    // Выполняем операцию
-    const result = await prisma.$transaction(async (tx) => {
-      // Увеличиваем сумму цели
-      const newCurrentAmount = Number(goal.currentAmount) + amount;
-      const isCompleted = newCurrentAmount >= Number(goal.targetAmount);
+    // Цель хранится в основной валюте пользователя, а счёт может быть в
+    // другой — конвертируем сумму пополнения, иначе цифры просто "плывут"
+    // (та же логика, что и у транзакций/переводов).
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { primaryCurrency: true },
+    });
+    const primaryCurrency = user?.primaryCurrency || '₸';
 
+    let amountInGoalCurrency = amount;
+    if (account.currency !== primaryCurrency) {
+      let rates: Record<string, number> = {};
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — переводим 1:1
+      }
+      amountInGoalCurrency = convertAmount(amount, account.currency, primaryCurrency, rates);
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Списываем со счёта атомарно и сразу проверяем итог — защита от гонки
+      // при параллельных операциях с одним и тем же счётом.
+      const updatedAccount = await tx.account.update({
+        where: { id: accountId },
+        data: { balance: { decrement: amount } },
+      });
+      if (Number(updatedAccount.balance) < 0) {
+        throw new Error('Insufficient funds');
+      }
+
+      // Увеличиваем сумму цели тоже атомарно (не читаем-считаем-пишем)
       const updatedGoal = await tx.goal.update({
         where: { id: goalId },
-        data: {
-          currentAmount: newCurrentAmount,
-          isCompleted,
-          updatedAt: new Date(),
-        },
-        include: {
-          account: true,
-        },
+        data: { currentAmount: { increment: amountInGoalCurrency }, updatedAt: new Date() },
+        include: { account: true },
       });
 
-      // Списываем со счета
-      await tx.account.update({
-        where: { id: accountId },
-        data: {
-          balance: { decrement: amount },
-        },
-      });
+      const isCompleted = Number(updatedGoal.currentAmount) >= Number(updatedGoal.targetAmount);
+      if (isCompleted !== updatedGoal.isCompleted) {
+        return tx.goal.update({
+          where: { id: goalId },
+          data: { isCompleted },
+          include: { account: true },
+        });
+      }
 
       return updatedGoal;
     });
@@ -169,46 +186,52 @@ class GoalService {
     }
 
     const goal = await this.getById(goalId, userId);
-
     if (Number(goal.currentAmount) < amount) {
       throw new Error('Insufficient goal funds');
     }
 
-    // Проверяем счет
     const account = await prisma.account.findFirst({
-      where: {
-        id: accountId,
-        userId,
-      },
+      where: { id: accountId, userId },
     });
-
     if (!account) {
       throw new Error('Account not found');
     }
 
-    // Выполняем операцию
-    const result = await prisma.$transaction(async (tx) => {
-      // Уменьшаем сумму цели
-      const newCurrentAmount = Number(goal.currentAmount) - amount;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { primaryCurrency: true },
+    });
+    const primaryCurrency = user?.primaryCurrency || '₸';
 
+    let amountInAccountCurrency = amount;
+    if (account.currency !== primaryCurrency) {
+      let rates: Record<string, number> = {};
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — переводим 1:1
+      }
+      amountInAccountCurrency = convertAmount(amount, primaryCurrency, account.currency, rates);
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Атомарно уменьшаем сумму цели и сразу проверяем итог
       const updatedGoal = await tx.goal.update({
         where: { id: goalId },
         data: {
-          currentAmount: newCurrentAmount,
+          currentAmount: { decrement: amount },
           isCompleted: false,
           updatedAt: new Date(),
         },
-        include: {
-          account: true,
-        },
+        include: { account: true },
       });
+      if (Number(updatedGoal.currentAmount) < 0) {
+        throw new Error('Insufficient goal funds');
+      }
 
-      // Зачисляем на счет
       await tx.account.update({
         where: { id: accountId },
-        data: {
-          balance: { increment: amount },
-        },
+        data: { balance: { increment: amountInAccountCurrency } },
       });
 
       return updatedGoal;
