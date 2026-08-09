@@ -54,36 +54,47 @@ class AuthService {
   }
 
   async login(data: LoginDTO) {
-    // Находим пользователя
-    const user = await prisma.user.findUnique({
-      where: { email: data.email },
-    });
+  const user = await prisma.user.findUnique({
+    where: { email: data.email },
+  });
 
-    if (!user) {
-      throw new Error('Invalid credentials');
-    }
+  console.log('[LOGIN] email:', JSON.stringify(data.email));
+  console.log('[LOGIN] user found:', !!user);
 
-    // Проверяем пароль
-    const isValidPassword = await bcrypt.compare(data.password, user.password);
-
-    if (!isValidPassword) {
-      throw new Error('Invalid credentials');
-    }
-
-    // Генерируем токен
-    const token = generateToken({ userId: user.id, email: user.email });
-
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        primaryCurrency: user.primaryCurrency,
-        createdAt: user.createdAt,
-      },
-      token,
-    };
+  if (!user) {
+    throw new Error('Invalid credentials');
   }
+
+  console.log('[LOGIN] stored password hash prefix:', user.password.substring(0, 7));
+  console.log('[LOGIN] stored password hash length:', user.password.length);
+
+  const isValidPassword = await bcrypt.compare(
+    data.password,
+    user.password
+  );
+
+  console.log('[LOGIN] bcrypt result:', isValidPassword);
+
+  if (!isValidPassword) {
+    throw new Error('Invalid credentials');
+  }
+
+  const token = generateToken({
+    userId: user.id,
+    email: user.email,
+  });
+
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      primaryCurrency: user.primaryCurrency,
+      createdAt: user.createdAt,
+    },
+    token,
+  };
+}
 
   async getMe(userId: string) {
     const user = await prisma.user.findUnique({
