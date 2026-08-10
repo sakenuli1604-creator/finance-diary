@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import { extractPdfLines, parsePdfStatementLines } from '../utils/pdfStatement';
 import { useAccountsStore } from '../store/accountsStore';
 import { useCategoriesStore } from '../store/categoriesStore';
 import { transactionsAPI, ImportRow } from '../api/transactions';
@@ -62,6 +63,7 @@ export const ImportTransactions: React.FC = () => {
   const [incomeCategoryId, setIncomeCategoryId] = useState('');
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isParsingPdf, setIsParsingPdf] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
 
   useEffect(() => {
@@ -82,7 +84,9 @@ export const ImportTransactions: React.FC = () => {
 
   const handleFile = (file: File) => {
     setError('');
-    const isCsv = file.name.toLowerCase().endsWith('.csv');
+    const lowerName = file.name.toLowerCase();
+    const isCsv = lowerName.endsWith('.csv');
+    const isPdf = lowerName.endsWith('.pdf');
 
     if (isCsv) {
       Papa.parse(file, {
@@ -101,6 +105,26 @@ export const ImportTransactions: React.FC = () => {
         },
         error: () => setError('Не удалось прочитать CSV-файл'),
       });
+    } else if (isPdf) {
+      setIsParsingPdf(true);
+      extractPdfLines(file)
+        .then((lines) => {
+          const { rows, columns } = parsePdfStatementLines(lines);
+          if (rows.length === 0) {
+            setError(
+              'Не удалось распознать таблицу операций в этом PDF. Возможно, это скан/фото ' +
+                '(текст не выделяется) или банк использует необычный формат — попробуйте ' +
+                'выгрузить выписку в CSV или Excel, так надёжнее.'
+            );
+            return;
+          }
+          setColumns(columns);
+          setRawRows(rows);
+          guessColumns(columns);
+          setStep('map');
+        })
+        .catch(() => setError('Не удалось прочитать PDF-файл'))
+        .finally(() => setIsParsingPdf(false));
     } else {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -248,14 +272,24 @@ export const ImportTransactions: React.FC = () => {
             </div>
 
             <label className="w-full h-32 border-2 border-dashed border-line rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 transition-colors cursor-pointer">
-              <Upload className="text-secondary" size={28} />
-              <span className="text-sm text-secondary">
-                Выбери файл выписки — CSV или Excel (.xlsx)
-              </span>
+              {isParsingPdf ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+                  <span className="text-sm text-secondary">Читаю PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="text-secondary" size={28} />
+                  <span className="text-sm text-secondary">
+                    Выбери файл выписки — CSV, Excel (.xlsx) или PDF
+                  </span>
+                </>
+              )}
               <input
                 type="file"
-                accept=".csv,.xlsx,.xls"
+                accept=".csv,.xlsx,.xls,.pdf"
                 className="hidden"
+                disabled={isParsingPdf}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleFile(file);
@@ -267,6 +301,11 @@ export const ImportTransactions: React.FC = () => {
               Выгрузи историю операций из приложения своего банка (обычно в разделе
               «История» → «Экспорт» / «Скачать выписку») и загрузи файл сюда. На следующем шаге
               нужно будет указать, какая колонка — дата, а какая — сумма.
+            </p>
+            <p className="text-xs text-secondary">
+              PDF: работает только с текстовыми выписками, где текст можно выделить —
+              со сканами/фото не справится. Разбор эвристический, так что перед импортом
+              обязательно проверь превью — колонки и суммы можно поправить на следующем шаге.
             </p>
           </Card>
         )}
