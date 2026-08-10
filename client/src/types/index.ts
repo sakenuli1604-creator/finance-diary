@@ -109,6 +109,17 @@ export interface Transfer {
   toAccount?: Account;
 }
 
+export interface GoalItem {
+  id: string;
+  goalId: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  isCompleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Goal {
   id: string;
   userId: string;
@@ -122,6 +133,7 @@ export interface Goal {
   createdAt: string;
   updatedAt: string;
   account?: Account;
+  items: GoalItem[];
 }
 
 export interface DashboardStats {

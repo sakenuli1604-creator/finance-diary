@@ -13,8 +13,10 @@ interface GoalsState {
   createGoal: (data: CreateGoalData) => Promise<Goal>;
   updateGoal: (id: string, data: UpdateGoalData) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
-  deposit: (id: string, amount: number, accountId: string) => Promise<void>;
-  withdraw: (id: string, amount: number, accountId: string) => Promise<void>;
+  deposit: (id: string, amount: number, accountId: string, itemId?: string) => Promise<void>;
+  withdraw: (id: string, amount: number, accountId: string, itemId?: string) => Promise<void>;
+  addGoalItem: (goalId: string, name: string, targetAmount: number) => Promise<void>;
+  removeGoalItem: (goalId: string, itemId: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -103,10 +105,10 @@ export const useGoalsStore = create<GoalsState>((set) => ({
     }
   },
 
-  deposit: async (id: string, amount: number, accountId: string) => {
+  deposit: async (id: string, amount: number, accountId: string, itemId?: string) => {
     try {
       set({ isLoading: true, error: null });
-      const updated = await goalsAPI.deposit(id, amount, accountId);
+      const updated = await goalsAPI.deposit(id, amount, accountId, itemId);
       set((state) => ({
         goals: state.goals.map((g) => (g.id === id ? updated : g)),
         selectedGoal: state.selectedGoal?.id === id ? updated : state.selectedGoal,
@@ -121,10 +123,10 @@ export const useGoalsStore = create<GoalsState>((set) => ({
     }
   },
 
-  withdraw: async (id: string, amount: number, accountId: string) => {
+  withdraw: async (id: string, amount: number, accountId: string, itemId?: string) => {
     try {
       set({ isLoading: true, error: null });
-      const updated = await goalsAPI.withdraw(id, amount, accountId);
+      const updated = await goalsAPI.withdraw(id, amount, accountId, itemId);
       set((state) => ({
         goals: state.goals.map((g) => (g.id === id ? updated : g)),
         selectedGoal: state.selectedGoal?.id === id ? updated : state.selectedGoal,
@@ -133,6 +135,42 @@ export const useGoalsStore = create<GoalsState>((set) => ({
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to withdraw',
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  addGoalItem: async (goalId: string, name: string, targetAmount: number) => {
+    try {
+      set({ isLoading: true, error: null });
+      const updated = await goalsAPI.addItem(goalId, name, targetAmount);
+      set((state) => ({
+        goals: state.goals.map((g) => (g.id === goalId ? updated : g)),
+        selectedGoal: state.selectedGoal?.id === goalId ? updated : state.selectedGoal,
+        isLoading: false,
+      }));
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to add item',
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
+  removeGoalItem: async (goalId: string, itemId: string) => {
+    try {
+      set({ isLoading: true, error: null });
+      const updated = await goalsAPI.removeItem(goalId, itemId);
+      set((state) => ({
+        goals: state.goals.map((g) => (g.id === goalId ? updated : g)),
+        selectedGoal: state.selectedGoal?.id === goalId ? updated : state.selectedGoal,
+        isLoading: false,
+      }));
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to remove item',
         isLoading: false,
       });
       throw error;

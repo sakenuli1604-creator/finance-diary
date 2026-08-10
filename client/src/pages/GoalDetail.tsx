@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit2, Trash2, Plus, Minus } from 'lucide-react';
 import { useGoalsStore } from '../store/goalsStore';
@@ -7,18 +7,25 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
+import { GoalForm } from '../components/goals/GoalForm';
 
 export const GoalDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { selectedGoal, fetchGoal, deleteGoal, deposit, withdraw } =
+  const { selectedGoal, fetchGoal, deleteGoal, deposit, withdraw, updateGoal, addGoalItem, removeGoalItem } =
     useGoalsStore();
   const { accounts, fetchAccounts } = useAccountsStore();
 
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [amount, setAmount] = useState(0);
   const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [selectedItemId, setSelectedItemId] = useState('');
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemAmount, setNewItemAmount] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -29,11 +36,18 @@ export const GoalDetail: React.FC = () => {
     fetchAccounts();
   }, [id, fetchGoal, fetchAccounts]);
 
+  const didInitAccountSelection = useRef(false);
+
   useEffect(() => {
-    if (accounts.length > 0 && !selectedAccountId) {
-      setSelectedAccountId(accounts[0].id);
-    }
-  }, [accounts]);
+    if (didInitAccountSelection.current) return;
+    if (accounts.length === 0 || !selectedGoal) return; // ждём пока оба загрузятся
+
+    const linkedAccountExists =
+      selectedGoal.accountId && accounts.some((a) => a.id === selectedGoal.accountId);
+
+    setSelectedAccountId(linkedAccountExists ? selectedGoal.accountId! : accounts[0].id);
+    didInitAccountSelection.current = true;
+  }, [accounts, selectedGoal]);
 
   const handleDelete = async () => {
     if (!confirm('Вы уверены, что хотите удалить эту цель?')) return;
@@ -48,10 +62,22 @@ export const GoalDetail: React.FC = () => {
     }
   };
 
+  const handleUpdate = async (data: any) => {
+    try {
+      setIsSaving(true);
+      await updateGoal(id!, data);
+      setIsEditModalOpen(false);
+    } catch (error) {
+      console.error('Failed to update goal:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleDeposit = async () => {
     try {
       setIsProcessing(true);
-      await deposit(id!, amount, selectedAccountId);
+      await deposit(id!, amount, selectedAccountId, selectedItemId || undefined);
       setIsDepositModalOpen(false);
       setAmount(0);
     } catch (error) {
@@ -64,7 +90,7 @@ export const GoalDetail: React.FC = () => {
   const handleWithdraw = async () => {
     try {
       setIsProcessing(true);
-      await withdraw(id!, amount, selectedAccountId);
+      await withdraw(id!, amount, selectedAccountId, selectedItemId || undefined);
       setIsWithdrawModalOpen(false);
       setAmount(0);
     } catch (error) {
@@ -72,6 +98,40 @@ export const GoalDetail: React.FC = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsProcessing(true);
+      await addGoalItem(id!, newItemName, newItemAmount);
+      setIsAddItemModalOpen(false);
+      setNewItemName('');
+      setNewItemAmount(0);
+    } catch (error) {
+      console.error('Failed to add item:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    if (!confirm('Удалить этот пункт цели? Накопленное на него спишется из общей суммы.')) return;
+    try {
+      await removeGoalItem(id!, itemId);
+    } catch (error) {
+      console.error('Failed to remove item:', error);
+    }
+  };
+
+  const openDepositModal = (itemId?: string) => {
+    setSelectedItemId(itemId || '');
+    setIsDepositModalOpen(true);
+  };
+
+  const openWithdrawModal = (itemId?: string) => {
+    setSelectedItemId(itemId || '');
+    setIsWithdrawModalOpen(true);
   };
 
   const formatAmount = (amount: number) => {
@@ -112,7 +172,7 @@ export const GoalDetail: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="text-5xl">{selectedGoal.icon || '🎯'}</div>
             <div className="flex gap-2">
-              <Button variant="secondary">
+              <Button variant="secondary" onClick={() => setIsEditModalOpen(true)}>
                 <Edit2 size={18} />
               </Button>
               <Button
@@ -188,13 +248,106 @@ export const GoalDetail: React.FC = () => {
               </p>
             </div>
           )}
+
+          {selectedGoal.account && (
+            <div className={selectedGoal.deadline ? 'mt-2' : 'pt-4 border-t mt-4'}>
+              <p className="text-sm text-secondary">
+                Привязанный счёт:{' '}
+                <span className="font-medium text-primary">
+                  {selectedGoal.account.icon} {selectedGoal.account.name}
+                </span>
+              </p>
+            </div>
+          )}
         </Card>
 
-        {/* Actions */}
-        {!isCompleted && (
+        {/* Items — разбивка цели на несколько вещей */}
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-primary">Пункты цели</h2>
+            <button
+              onClick={() => setIsAddItemModalOpen(true)}
+              className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              <Plus size={16} />
+              Добавить пункт
+            </button>
+          </div>
+
+          {selectedGoal.items.length === 0 ? (
+            <p className="text-sm text-secondary">
+              Можно разбить эту цель на несколько вещей — например, «Игровой сетап» →
+              монитор, клавиатура, мышь — и копить на каждую отдельно, пока не соберётся вся
+              цель целиком.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {selectedGoal.items.map((item) => {
+                const itemProgress =
+                  Number(item.targetAmount) > 0
+                    ? (Number(item.currentAmount) / Number(item.targetAmount)) * 100
+                    : 0;
+                const itemDone = itemProgress >= 100;
+
+                return (
+                  <div key={item.id} className="border border-line rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-medium text-primary flex items-center gap-2">
+                        {item.name}
+                        {itemDone && <span className="text-income text-sm">✓</span>}
+                      </p>
+                      <button
+                        onClick={() => handleRemoveItem(item.id)}
+                        className="text-secondary hover:text-expense"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+
+                    <div className="w-full bg-muted-strong rounded-full h-2 mb-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${
+                          itemDone ? 'bg-green-500' : 'bg-blue-500'
+                        }`}
+                        style={{ width: `${Math.min(itemProgress, 100)}%` }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-secondary">
+                        {formatAmount(Number(item.currentAmount))} / {formatAmount(Number(item.targetAmount))} ₸
+                      </span>
+                      {!itemDone && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openDepositModal(item.id)}
+                            className="text-blue-600 hover:text-blue-700 font-medium"
+                          >
+                            + Пополнить
+                          </button>
+                          {Number(item.currentAmount) > 0 && (
+                            <button
+                              onClick={() => openWithdrawModal(item.id)}
+                              className="text-secondary hover:text-primary font-medium"
+                            >
+                              Снять
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
+        {/* Actions — общее пополнение доступно только если цель НЕ разбита на пункты */}
+        {!isCompleted && selectedGoal.items.length === 0 && (
           <div className="grid grid-cols-2 gap-3">
             <Button
-              onClick={() => setIsDepositModalOpen(true)}
+              onClick={() => openDepositModal()}
               className="flex items-center justify-center gap-2"
             >
               <Plus size={20} />
@@ -202,7 +355,7 @@ export const GoalDetail: React.FC = () => {
             </Button>
             <Button
               variant="secondary"
-              onClick={() => setIsWithdrawModalOpen(true)}
+              onClick={() => openWithdrawModal()}
               className="flex items-center justify-center gap-2"
               disabled={Number(selectedGoal.currentAmount) === 0}
             >
@@ -220,6 +373,13 @@ export const GoalDetail: React.FC = () => {
         title="Пополнить цель"
       >
         <div className="space-y-4">
+          {selectedItemId && (
+            <p className="text-sm text-secondary">
+              Пункт: <span className="font-medium text-primary">
+                {selectedGoal.items.find((i) => i.id === selectedItemId)?.name}
+              </span>
+            </p>
+          )}
           <Input
             type="number"
             label="Сумма"
@@ -241,7 +401,7 @@ export const GoalDetail: React.FC = () => {
               {accounts.map((account) => (
                 <option key={account.id} value={account.id}>
                   {account.icon} {account.name} ({account.balance}{' '}
-                  {account.currency})
+                  {account.currency}){account.id === selectedGoal.accountId ? ' — привязан' : ''}
                 </option>
               ))}
             </select>
@@ -265,6 +425,13 @@ export const GoalDetail: React.FC = () => {
         title="Снять средства"
       >
         <div className="space-y-4">
+          {selectedItemId && (
+            <p className="text-sm text-secondary">
+              Пункт: <span className="font-medium text-primary">
+                {selectedGoal.items.find((i) => i.id === selectedItemId)?.name}
+              </span>
+            </p>
+          )}
           <Input
             type="number"
             label="Сумма"
@@ -286,6 +453,7 @@ export const GoalDetail: React.FC = () => {
               {accounts.map((account) => (
                 <option key={account.id} value={account.id}>
                   {account.icon} {account.name}
+                  {account.id === selectedGoal.accountId ? ' — привязан' : ''}
                 </option>
               ))}
             </select>
@@ -300,6 +468,54 @@ export const GoalDetail: React.FC = () => {
             Снять
           </Button>
         </div>
+      </Modal>
+      {/* Edit Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Редактировать цель"
+      >
+        <GoalForm
+          onSubmit={handleUpdate}
+          isLoading={isSaving}
+          hasItems={selectedGoal.items.length > 0}
+          initialData={{
+            name: selectedGoal.name,
+            targetAmount: Number(selectedGoal.targetAmount),
+            accountId: selectedGoal.accountId,
+            deadline: selectedGoal.deadline?.split('T')[0],
+            icon: selectedGoal.icon,
+          }}
+        />
+      </Modal>
+
+      {/* Add Item Modal */}
+      <Modal
+        isOpen={isAddItemModalOpen}
+        onClose={() => setIsAddItemModalOpen(false)}
+        title="Добавить пункт цели"
+      >
+        <form onSubmit={handleAddItem} className="space-y-4">
+          <Input
+            label="Название"
+            placeholder="Например: Монитор"
+            value={newItemName}
+            onChange={(e) => setNewItemName(e.target.value)}
+            required
+            autoFocus
+          />
+          <Input
+            type="number"
+            label="Сколько нужно накопить"
+            placeholder="0"
+            value={newItemAmount || ''}
+            onChange={(e) => setNewItemAmount(parseFloat(e.target.value) || 0)}
+            required
+          />
+          <Button type="submit" fullWidth isLoading={isProcessing}>
+            Добавить
+          </Button>
+        </form>
       </Modal>
     </div>
   );

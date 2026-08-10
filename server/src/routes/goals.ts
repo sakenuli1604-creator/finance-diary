@@ -13,5 +13,7 @@ router.put('/:id', goalController.update);
 router.delete('/:id', goalController.delete);
 router.post('/:id/deposit', goalController.deposit);
 router.post('/:id/withdraw', goalController.withdraw);
+router.post('/:id/items', goalController.addItem);
+router.delete('/:id/items/:itemId', goalController.removeItem);
 
 export default router;

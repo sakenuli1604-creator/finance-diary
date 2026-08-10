@@ -97,7 +97,7 @@ class GoalController {
     try {
       const userId = req.userId!;
       const { id } = req.params;
-      const { amount, accountId } = req.body;
+      const { amount, accountId, itemId } = req.body;
 
       if (!amount || !accountId) {
         return res.status(400).json({
@@ -109,7 +109,8 @@ class GoalController {
         id,
         userId,
         parseFloat(amount),
-        accountId
+        accountId,
+        itemId || undefined
       );
 
       res.json(goal);
@@ -122,7 +123,7 @@ class GoalController {
     try {
       const userId = req.userId!;
       const { id } = req.params;
-      const { amount, accountId } = req.body;
+      const { amount, accountId, itemId } = req.body;
 
       if (!amount || !accountId) {
         return res.status(400).json({
@@ -134,8 +135,36 @@ class GoalController {
         id,
         userId,
         parseFloat(amount),
-        accountId
+        accountId,
+        itemId || undefined
       );
+
+      res.json(goal);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async addItem(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { id } = req.params;
+      const { name, targetAmount } = req.body;
+
+      const goal = await goalService.addItem(id, userId, name, parseFloat(targetAmount));
+
+      res.status(201).json(goal);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async removeItem(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { id, itemId } = req.params;
+
+      const goal = await goalService.removeItem(id, userId, itemId);
 
       res.json(goal);
     } catch (error) {

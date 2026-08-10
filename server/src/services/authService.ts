@@ -54,36 +54,36 @@ class AuthService {
   }
 
   async login(data: LoginDTO) {
-  const user = await prisma.user.findUnique({
-    where: { email: data.email },
-  });
+    // Находим пользователя
+    const user = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
 
-  if (!user) {
-    throw new Error('Invalid credentials');
+    if (!user) {
+      throw new Error('Invalid credentials');
+    }
+
+    // Проверяем пароль
+    const isValidPassword = await bcrypt.compare(data.password, user.password);
+
+    if (!isValidPassword) {
+      throw new Error('Invalid credentials');
+    }
+
+    // Генерируем токен
+    const token = generateToken({ userId: user.id, email: user.email });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        primaryCurrency: user.primaryCurrency,
+        createdAt: user.createdAt,
+      },
+      token,
+    };
   }
-
-  const isValidPassword = await bcrypt.compare(data.password, user.password);
-
-  if (!isValidPassword) {
-    throw new Error('Invalid credentials');
-  }
-
-  const token = generateToken({
-    userId: user.id,
-    email: user.email,
-  });
-
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      primaryCurrency: user.primaryCurrency,
-      createdAt: user.createdAt,
-    },
-    token,
-  };
-}
 
   async getMe(userId: string) {
     const user = await prisma.user.findUnique({

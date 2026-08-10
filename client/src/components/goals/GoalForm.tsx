@@ -8,6 +8,7 @@ interface GoalFormProps {
   onSubmit: (data: CreateGoalData) => Promise<void>;
   initialData?: Partial<CreateGoalData>;
   isLoading?: boolean;
+  hasItems?: boolean;
 }
 
 const GOAL_ICONS = ['🎯', '🏠', '🚗', '✈️', '💍', '🎓', '💻', '📱', '⌚', '🎮'];
@@ -16,6 +17,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
   onSubmit,
   initialData,
   isLoading = false,
+  hasItems = false,
 }) => {
   const { accounts, fetchAccounts } = useAccountsStore();
 
@@ -55,8 +57,15 @@ export const GoalForm: React.FC<GoalFormProps> = ({
         onChange={(e) =>
           setFormData({ ...formData, targetAmount: parseFloat(e.target.value) || 0 })
         }
+        disabled={hasItems}
         required
       />
+      {hasItems && (
+        <p className="text-xs text-secondary -mt-3">
+          Сумма считается автоматически из пунктов цели — управляйте ей на странице цели
+          (добавляя/удаляя пункты), а не здесь.
+        </p>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-secondary mb-2">

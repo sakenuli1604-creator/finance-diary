@@ -130,8 +130,24 @@ model Goal {
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   account Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  items   GoalItem[]
 
   @@index([userId])
+}
+
+model GoalItem {
+  id            String   @id @default(uuid())
+  goalId        String
+  name          String
+  targetAmount  Decimal  @db.Decimal(15, 2)
+  currentAmount Decimal  @default(0) @db.Decimal(15, 2)
+  isCompleted   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
 }
 
 model Tag {

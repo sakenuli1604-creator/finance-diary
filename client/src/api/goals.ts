@@ -42,19 +42,41 @@ export const goalsAPI = {
     await api.delete(`/goals/${id}`);
   },
 
-  deposit: async (id: string, amount: number, accountId: string): Promise<Goal> => {
+  deposit: async (
+    id: string,
+    amount: number,
+    accountId: string,
+    itemId?: string
+  ): Promise<Goal> => {
     const response = await api.post<Goal>(`/goals/${id}/deposit`, {
       amount,
       accountId,
+      itemId,
     });
     return response.data;
   },
 
-  withdraw: async (id: string, amount: number, accountId: string): Promise<Goal> => {
+  withdraw: async (
+    id: string,
+    amount: number,
+    accountId: string,
+    itemId?: string
+  ): Promise<Goal> => {
     const response = await api.post<Goal>(`/goals/${id}/withdraw`, {
       amount,
       accountId,
+      itemId,
     });
+    return response.data;
+  },
+
+  addItem: async (goalId: string, name: string, targetAmount: number): Promise<Goal> => {
+    const response = await api.post<Goal>(`/goals/${goalId}/items`, { name, targetAmount });
+    return response.data;
+  },
+
+  removeItem: async (goalId: string, itemId: string): Promise<Goal> => {
+    const response = await api.delete<Goal>(`/goals/${goalId}/items/${itemId}`);
     return response.data;
   },
 };
