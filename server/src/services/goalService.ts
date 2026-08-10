@@ -9,6 +9,7 @@ export interface CreateGoalDTO {
   accountId?: string;
   deadline?: Date;
   icon?: string;
+  items?: { name: string; targetAmount: number }[];
 }
 
 export interface UpdateGoalDTO {
@@ -67,6 +68,47 @@ class GoalService {
       }
     }
 
+    // Если цель создаётся сразу разбитой на пункты — считаем сумму цели из
+    // суммы пунктов и создаём всё одной транзакцией (не через отдельные
+    // addItem-вызовы, иначе сумма задвоится).
+    if (data.items && data.items.length > 0) {
+      for (const item of data.items) {
+        if (!item.name?.trim() || !item.targetAmount || item.targetAmount <= 0) {
+          throw new Error('Each item needs a name and a positive target amount');
+        }
+      }
+
+      const targetAmount = data.items.reduce((sum, i) => sum + i.targetAmount, 0);
+
+      const goal = await prisma.$transaction(async (tx) => {
+        const created = await tx.goal.create({
+          data: {
+            userId,
+            name: data.name,
+            targetAmount,
+            accountId: data.accountId,
+            deadline: data.deadline,
+            icon: data.icon,
+          },
+        });
+
+        await tx.goalItem.createMany({
+          data: data.items!.map((item) => ({
+            goalId: created.id,
+            name: item.name.trim(),
+            targetAmount: item.targetAmount,
+          })),
+        });
+
+        return tx.goal.findUniqueOrThrow({
+          where: { id: created.id },
+          include: { account: true, items: { orderBy: { createdAt: 'asc' } } },
+        });
+      });
+
+      return goal;
+    }
+
     const goal = await prisma.goal.create({
       data: {
         userId,
@@ -78,6 +120,7 @@ class GoalService {
       },
       include: {
         account: true,
+        items: true,
       },
     });
 

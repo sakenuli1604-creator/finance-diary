@@ -1,12 +1,18 @@
 import api from './axios';
 import { Goal } from '../types';
 
+export interface GoalItemInput {
+  name: string;
+  targetAmount: number;
+}
+
 export interface CreateGoalData {
   name: string;
   targetAmount: number;
   accountId?: string;
   deadline?: string;
   icon?: string;
+  items?: GoalItemInput[]; // если задано — создаём цель сразу разбитой на пункты
 }
 
 export interface UpdateGoalData {

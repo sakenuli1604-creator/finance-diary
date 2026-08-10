@@ -30,26 +30,35 @@ class GoalController {
   async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;
-      const { name, targetAmount, accountId, deadline, icon } = req.body;
+      const { name, targetAmount, accountId, deadline, icon, items } = req.body;
+      const hasItems = Array.isArray(items) && items.length > 0;
 
-      if (!name || !targetAmount) {
-        return res.status(400).json({
-          message: 'name and targetAmount are required',
-        });
+      if (!name) {
+        return res.status(400).json({ message: 'name is required' });
       }
 
-      if (targetAmount <= 0) {
-        return res.status(400).json({
-          message: 'targetAmount must be positive',
-        });
+      if (!hasItems) {
+        if (!targetAmount) {
+          return res.status(400).json({
+            message: 'name and targetAmount are required',
+          });
+        }
+        if (targetAmount <= 0) {
+          return res.status(400).json({
+            message: 'targetAmount must be positive',
+          });
+        }
       }
 
       const goal = await goalService.create(userId, {
         name,
-        targetAmount: parseFloat(targetAmount),
+        targetAmount: hasItems ? 0 : parseFloat(targetAmount),
         accountId,
         deadline: deadline ? new Date(deadline) : undefined,
         icon,
+        items: hasItems
+          ? items.map((i: any) => ({ name: i.name, targetAmount: parseFloat(i.targetAmount) }))
+          : undefined,
       });
 
       res.status(201).json(goal);
