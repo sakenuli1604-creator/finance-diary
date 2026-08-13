@@ -307,6 +307,20 @@ export const ImportTransactions: React.FC = () => {
               со сканами/фото не справится. Разбор эвристический, так что перед импортом
               обязательно проверь превью — колонки и суммы можно поправить на следующем шаге.
             </p>
+
+            <div className="pt-2 border-t border-line">
+              <p className="text-xs text-secondary mb-2">
+                Есть только отдельные чеки (например, из Kaspi) вместо общей выписки? Такие чеки
+                обычно — картинка внутри PDF, без текста внутри, поэтому этот разбор их не увидит.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('/transactions/import-receipts')}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Загрузить отдельные чеки (с распознаванием) →
+              </button>
+            </div>
           </Card>
         )}
 

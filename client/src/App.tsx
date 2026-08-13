@@ -21,6 +21,9 @@ import { Converter } from './pages/Converter';
 const ImportTransactions = React.lazy(() =>
   import('./pages/ImportTransactions').then((m) => ({ default: m.ImportTransactions }))
 );
+const ImportReceipts = React.lazy(() =>
+  import('./pages/ImportReceipts').then((m) => ({ default: m.ImportReceipts }))
+);
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { BottomNav } from './components/layout/BottomNav';
 import { InstallPWA } from './components/InstallPWA';
@@ -193,6 +196,23 @@ function AppContent() {
                 }
               >
                 <ImportTransactions />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/transactions/import-receipts"
+          element={
+            <ProtectedRoute>
+              <Suspense
+                fallback={
+                  <div className="min-h-screen bg-app flex items-center justify-center text-secondary">
+                    Загрузка...
+                  </div>
+                }
+              >
+                <ImportReceipts />
               </Suspense>
             </ProtectedRoute>
           }

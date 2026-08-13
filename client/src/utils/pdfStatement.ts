@@ -1,8 +1,4 @@
-import * as pdfjsLib from 'pdfjs-dist';
-// @ts-ignore — vite отдаёт URL воркера как строку
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url';
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+import { pdfjsLib } from './pdfWorkerSetup';
 
 export interface PdfParseResult {
   rows: Record<string, string>[];
@@ -16,7 +12,10 @@ const DATE_RE_2 = /^(\d{4})-(\d{2})-(\d{2})/;
 
 // Число с пробелом/точкой/запятой как разделителем тысяч и опциональными копейками.
 // Ищем все вхождения в строке — по ним определяем сумму(ы) операции.
-const AMOUNT_RE = /-?\d{1,3}(?:[\s\u00A0.,]\d{3})*(?:[.,]\d{2})?/g;
+
+// Валютные коды/символы, которые банки обычно ставят рядом с суммой —
+// сильный сигнал, что это именно сумма, а не дата/номер карты/остаток.
+const CURRENCY_HINT_RE = /(UAH|KZT|RUB|USD|EUR|₴|₸|₽|\$|€)/i;
 
 function matchLeadingDate(line: string): string | null {
   const m1 = line.match(DATE_RE_1);
@@ -30,6 +29,26 @@ function toNumber(raw: string): number {
   const cleaned = raw.replace(/[\s\u00A0]/g, '').replace(/\.(?=\d{3}(?:\D|$))/g, '');
   const normalized = cleaned.replace(',', '.');
   return parseFloat(normalized);
+}
+
+// Числа со знаком — это почти всегда сумма операции (банки подписывают
+// расход "-123.45", доход "+123.45"). Даты, номера карт, остатки на счету
+// знака перед собой не имеют — поэтому раньше без этой проверки парсер
+// иногда путал вторую дату в строке (дату обработки/списания) с суммой.
+const SIGNED_AMOUNT_RE = /[-+]\s?\d{1,3}(?:[\s\u00A0.,]\d{3})*(?:[.,]\d{2})?/g;
+// Запасной вариант без знака — используем только если подписанных чисел
+// вообще не нашлось (какие-то банки печатают суммы без знака "+").
+const UNSIGNED_AMOUNT_RE = /\d{1,3}(?:[\s\u00A0.,]\d{3})*(?:[.,]\d{2})?/g;
+
+function looksLikeDateFragment(raw: string): boolean {
+  // "21.07", "8.04" и т.п. — ровно похоже на день.месяц без знака.
+  // Настоящие суммы почти никогда не выглядят как "21.07" без копеек-нуля,
+  // но перестрахуемся отдельно, а не полагаемся только на это.
+  const m = raw.replace(/^[-+]\s?/, '').match(/^(\d{1,2})[.,](\d{2})$/);
+  if (!m) return false;
+  const day = parseInt(m[1], 10);
+  const month = parseInt(m[2], 10);
+  return day >= 1 && day <= 31 && month >= 1 && month <= 12;
 }
 
 /**
@@ -92,14 +111,34 @@ export function parsePdfStatementLines(lines: string[]): PdfParseResult {
     if (!dateStr) continue;
 
     const rest = line.slice(dateStr.length).trim();
-    const numberMatches = Array.from(rest.matchAll(AMOUNT_RE))
-      .map((m) => m[0])
+
+    // 1) Сначала ищем числа с явным знаком — это почти всегда сумма
+    let numberMatches = Array.from(rest.matchAll(SIGNED_AMOUNT_RE))
+      .map((m) => m[0].trim())
       .filter((n) => {
         const value = toNumber(n);
-        // отсекаем мелкие числа-мусор (номера страниц, часть номера карты и т.п.);
-        // суммы с копейками пропускаем всегда, целые — только если не совсем крошечные
-        return !isNaN(value) && (/[.,]\d{2}$/.test(n) || Math.abs(value) >= 10);
+        return !isNaN(value) && !looksLikeDateFragment(n);
       });
+
+    // 2) Если подписанных чисел нет — берём обычные, но стараемся выбрать
+    //    те, что стоят рядом с кодом/символом валюты (надёжнее, чем просто
+    //    "последнее число в строке")
+    if (numberMatches.length === 0) {
+      const candidates = Array.from(rest.matchAll(UNSIGNED_AMOUNT_RE))
+        .map((m) => ({ str: m[0], index: m.index ?? 0 }))
+        .filter(({ str }) => {
+          const value = toNumber(str);
+          return !isNaN(value) && !looksLikeDateFragment(str) && (/[.,]\d{2}$/.test(str) || Math.abs(value) >= 10);
+        });
+
+      const withCurrency = candidates.filter(({ str, index }) => {
+        const tail = rest.slice(index + str.length, index + str.length + 6);
+        const head = rest.slice(Math.max(0, index - 6), index);
+        return CURRENCY_HINT_RE.test(tail) || CURRENCY_HINT_RE.test(head);
+      });
+
+      numberMatches = (withCurrency.length > 0 ? withCurrency : candidates).map((c) => c.str);
+    }
 
     if (numberMatches.length === 0) continue;
 
