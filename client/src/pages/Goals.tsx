@@ -3,16 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useGoalsStore } from '../store/goalsStore';
 import { useAuthStore } from '../store/authStore';
+import { useExchangeRatesStore } from '../store/exchangeRatesStore';
 import { GoalCard } from '../components/goals/GoalCard';
 import { GoalForm } from '../components/goals/GoalForm';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { convertAmount } from '../utils/currency';
 
 export const Goals: React.FC = () => {
   const navigate = useNavigate();
   const { goals, isLoading, fetchGoals, createGoal } = useGoalsStore();
   const { user } = useAuthStore();
+  const { rates, fetchRates } = useExchangeRatesStore();
   const primaryCurrency = user?.primaryCurrency || '₸';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,7 +23,8 @@ export const Goals: React.FC = () => {
 
   useEffect(() => {
     fetchGoals();
-  }, [fetchGoals]);
+    fetchRates();
+  }, [fetchGoals, fetchRates]);
 
   const handleCreateGoal = async (data: any) => {
     try {
@@ -37,8 +41,17 @@ export const Goals: React.FC = () => {
   const activeGoals = goals.filter((g) => !g.isCompleted);
   const completedGoals = goals.filter((g) => g.isCompleted);
 
-  const totalTarget = goals.reduce((sum, g) => sum + Number(g.targetAmount), 0);
-  const totalSaved = goals.reduce((sum, g) => sum + Number(g.currentAmount), 0);
+  // Цели могут быть в разных валютах — конвертируем каждую в основную
+  // валюту пользователя перед суммированием, иначе цифры в "Общем прогрессе"
+  // будут просто мешаниной из тенге, долларов и т.д.
+  const totalTarget = goals.reduce(
+    (sum, g) => sum + convertAmount(Number(g.targetAmount), g.currency, primaryCurrency, rates),
+    0
+  );
+  const totalSaved = goals.reduce(
+    (sum, g) => sum + convertAmount(Number(g.currentAmount), g.currency, primaryCurrency, rates),
+    0
+  );
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('ru-RU').format(amount);

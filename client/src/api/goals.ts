@@ -12,6 +12,7 @@ export interface CreateGoalData {
   accountId?: string;
   deadline?: string;
   icon?: string;
+  currency?: string;
   items?: GoalItemInput[]; // если задано — создаём цель сразу разбитой на пункты
 }
 

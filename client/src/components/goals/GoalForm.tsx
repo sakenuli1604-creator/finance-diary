@@ -4,6 +4,8 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { CreateGoalData, GoalItemInput } from '../../api/goals';
 import { useAccountsStore } from '../../store/accountsStore';
+import { useAuthStore } from '../../store/authStore';
+import { CURRENCIES } from '../../utils/currency';
 
 interface GoalFormProps {
   onSubmit: (data: CreateGoalData) => Promise<void>;
@@ -21,6 +23,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
   hasItems = false,
 }) => {
   const { accounts, fetchAccounts } = useAccountsStore();
+  const { user } = useAuthStore();
   const isEditMode = !!initialData;
 
   const [formData, setFormData] = useState<CreateGoalData>({
@@ -29,6 +32,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
     accountId: initialData?.accountId,
     deadline: initialData?.deadline,
     icon: initialData?.icon || '🎯',
+    currency: initialData?.currency || user?.primaryCurrency || '₸',
   });
 
   // Разбивка на пункты доступна только при СОЗДАНИИ новой цели — для уже
@@ -98,9 +102,20 @@ export const GoalForm: React.FC<GoalFormProps> = ({
 
       {isSplitMode && !isEditMode ? (
         <div>
-          <label className="block text-sm font-medium text-secondary mb-2">
-            Пункты цели
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-secondary">Пункты цели</label>
+            <select
+              value={formData.currency}
+              onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+              className="px-2 py-1 text-sm border border-line rounded-lg outline-none bg-surface text-primary"
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.symbol} value={c.symbol}>
+                  {c.symbol}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="space-y-2">
             {items.map((item, index) => (
               <div key={index} className="flex items-center gap-2">
@@ -148,18 +163,42 @@ export const GoalForm: React.FC<GoalFormProps> = ({
         </div>
       ) : (
         <>
-          <Input
-            label="Сумма цели"
-            type="number"
-            step="0.01"
-            placeholder="0"
-            value={formData.targetAmount}
-            onChange={(e) =>
-              setFormData({ ...formData, targetAmount: parseFloat(e.target.value) || 0 })
-            }
-            disabled={hasItems}
-            required
-          />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Input
+                label="Сумма цели"
+                type="number"
+                step="0.01"
+                placeholder="0"
+                value={formData.targetAmount}
+                onChange={(e) =>
+                  setFormData({ ...formData, targetAmount: parseFloat(e.target.value) || 0 })
+                }
+                disabled={hasItems}
+                required
+              />
+            </div>
+            <div className="w-28">
+              <label className="block text-sm font-medium text-secondary mb-1">Валюта</label>
+              <select
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                disabled={isEditMode}
+                className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-surface text-primary disabled:opacity-60"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.symbol} value={c.symbol}>
+                    {c.symbol}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {isEditMode && (
+            <p className="text-xs text-secondary -mt-3">
+              Валюту цели нельзя поменять после создания — сумма уже накоплена именно в ней.
+            </p>
+          )}
           {hasItems && (
             <p className="text-xs text-secondary -mt-3">
               Сумма считается автоматически из пунктов цели — управляйте ей на странице цели

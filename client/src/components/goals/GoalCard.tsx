@@ -64,13 +64,13 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick }) => {
         <div>
           <p className="text-sm text-secondary">Накоплено</p>
           <p className="text-lg font-bold text-primary">
-            {formatAmount(Number(goal.currentAmount))} ₸
+            {formatAmount(Number(goal.currentAmount))} {goal.currency}
           </p>
         </div>
         <div className="text-right">
           <p className="text-sm text-secondary">Цель</p>
           <p className="text-lg font-semibold text-secondary">
-            {formatAmount(Number(goal.targetAmount))} ₸
+            {formatAmount(Number(goal.targetAmount))} {goal.currency}
           </p>
         </div>
       </div>
@@ -81,7 +81,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, onClick }) => {
           <p className="text-sm text-secondary">
             Осталось:{' '}
             <span className="font-semibold text-primary">
-              {formatAmount(Number(goal.targetAmount) - Number(goal.currentAmount))} ₸
+              {formatAmount(Number(goal.targetAmount) - Number(goal.currentAmount))} {goal.currency}
             </span>
           </p>
         </div>

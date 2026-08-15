@@ -122,6 +122,7 @@ model Goal {
   name          String
   targetAmount  Decimal   @db.Decimal(15, 2)
   currentAmount Decimal   @default(0) @db.Decimal(15, 2)
+  currency      String    @default("₸") // валюта, в которой считается сумма цели
   deadline      DateTime?
   icon          String?
   isCompleted   Boolean   @default(false)

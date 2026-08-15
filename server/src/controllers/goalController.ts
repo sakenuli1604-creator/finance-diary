@@ -30,7 +30,7 @@ class GoalController {
   async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;
-      const { name, targetAmount, accountId, deadline, icon, items } = req.body;
+      const { name, targetAmount, accountId, deadline, icon, items, currency } = req.body;
       const hasItems = Array.isArray(items) && items.length > 0;
 
       if (!name) {
@@ -56,6 +56,7 @@ class GoalController {
         accountId,
         deadline: deadline ? new Date(deadline) : undefined,
         icon,
+        currency,
         items: hasItems
           ? items.map((i: any) => ({ name: i.name, targetAmount: parseFloat(i.targetAmount) }))
           : undefined,
@@ -71,15 +72,19 @@ class GoalController {
     try {
       const userId = req.userId!;
       const { id } = req.params;
-      const updateData = req.body;
+      const { name, targetAmount, deadline, icon, isCompleted } = req.body;
 
-      if (updateData.targetAmount !== undefined) {
-        updateData.targetAmount = parseFloat(updateData.targetAmount);
-      }
-
-      if (updateData.deadline) {
-        updateData.deadline = new Date(updateData.deadline);
-      }
+      // Валюту цели после создания менять нельзя — сумма уже накоплена в
+      // исходной валюте, и без конвертации переименование валюты просто
+      // "переклеит" ярлык на другую сумму (та же ошибка, что уже чинили
+      // с переводами и транзакциями). Поэтому здесь только явный список
+      // разрешённых полей, а не req.body целиком.
+      const updateData: Record<string, any> = {};
+      if (name !== undefined) updateData.name = name;
+      if (targetAmount !== undefined) updateData.targetAmount = parseFloat(targetAmount);
+      if (deadline !== undefined) updateData.deadline = deadline ? new Date(deadline) : null;
+      if (icon !== undefined) updateData.icon = icon;
+      if (isCompleted !== undefined) updateData.isCompleted = isCompleted;
 
       const goal = await goalService.update(id, userId, updateData);
 

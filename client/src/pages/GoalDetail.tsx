@@ -216,13 +216,13 @@ export const GoalDetail: React.FC = () => {
             <div>
               <p className="text-sm text-secondary mb-1">Накоплено</p>
               <p className="text-2xl font-bold text-primary">
-                {formatAmount(Number(selectedGoal.currentAmount))} ₸
+                {formatAmount(Number(selectedGoal.currentAmount))} {selectedGoal.currency}
               </p>
             </div>
             <div className="text-right">
               <p className="text-sm text-secondary mb-1">Цель</p>
               <p className="text-2xl font-semibold text-secondary">
-                {formatAmount(Number(selectedGoal.targetAmount))} ₸
+                {formatAmount(Number(selectedGoal.targetAmount))} {selectedGoal.currency}
               </p>
             </div>
           </div>
@@ -232,7 +232,7 @@ export const GoalDetail: React.FC = () => {
               <p className="text-sm text-secondary">
                 Осталось накопить:{' '}
                 <span className="font-bold text-primary">
-                  {formatAmount(remaining)} ₸
+                  {formatAmount(remaining)} {selectedGoal.currency}
                 </span>
               </p>
             </div>
@@ -315,7 +315,7 @@ export const GoalDetail: React.FC = () => {
 
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-secondary">
-                        {formatAmount(Number(item.currentAmount))} / {formatAmount(Number(item.targetAmount))} ₸
+                        {formatAmount(Number(item.currentAmount))} / {formatAmount(Number(item.targetAmount))} {selectedGoal.currency}
                       </span>
                       {!itemDone && (
                         <div className="flex gap-2">
@@ -382,7 +382,11 @@ export const GoalDetail: React.FC = () => {
           )}
           <Input
             type="number"
-            label="Сумма"
+            label={`Сумма (в валюте счёта${
+              selectedAccountId
+                ? `, ${accounts.find((a) => a.id === selectedAccountId)?.currency || ''}`
+                : ''
+            })`}
             placeholder="0"
             value={amount || ''}
             onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
@@ -434,7 +438,7 @@ export const GoalDetail: React.FC = () => {
           )}
           <Input
             type="number"
-            label="Сумма"
+            label={`Сумма (в валюте цели, ${selectedGoal.currency})`}
             placeholder="0"
             value={amount || ''}
             onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
@@ -485,6 +489,7 @@ export const GoalDetail: React.FC = () => {
             accountId: selectedGoal.accountId,
             deadline: selectedGoal.deadline?.split('T')[0],
             icon: selectedGoal.icon,
+            currency: selectedGoal.currency,
           }}
         />
       </Modal>
