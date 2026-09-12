@@ -1,0 +1,672 @@
+import { prisma } from '../lib/prisma';
+import { randomUUID } from 'crypto';
+import { getExchangeRates } from './exchangeRateService';
+import { convertAmount } from '../utils/currency';
+
+
+export interface CreateTransactionDTO {
+  accountId: string;
+  categoryId: string;
+  type: 'income' | 'expense';
+  amount: number;
+  title?: string;
+  description?: string;
+  shop?: string;
+  location?: string;
+  transactionDate?: string;
+  tagIds?: string[];
+}
+
+export interface SplitPart {
+  categoryId: string;
+  amount: number;
+}
+
+export interface ImportRow {
+  date: string; // ISO-строка
+  amount: number; // всегда положительное число
+  type: 'income' | 'expense';
+  title?: string;
+  categoryId: string;
+}
+
+export interface CreateSplitTransactionDTO {
+  accountId: string;
+  type: 'income' | 'expense';
+  parts: SplitPart[];
+  title?: string;
+  description?: string;
+  shop?: string;
+  transactionDate?: string;
+}
+
+export interface UpdateTransactionDTO {
+  accountId?: string;
+  categoryId?: string;
+  amount?: number;
+  title?: string;
+  description?: string;
+  shop?: string;
+  location?: string;
+  rating?: number;
+  transactionDate?: string;
+  tagIds?: string[];
+}
+
+export interface TransactionFilters {
+  accountId?: string;
+  categoryId?: string;
+  type?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string; // поиск по названию/описанию/магазину/локации/категории
+  amountMin?: number;
+  amountMax?: number;
+  limit?: number;
+}
+
+class TransactionService {
+  private async assertAccountOwnership(userId: string, accountId: string) {
+    const account = await prisma.account.findFirst({
+      where: { id: accountId, userId },
+    });
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    return account;
+  }
+
+  private async assertCategoryOwnership(userId: string, categoryId: string) {
+    // категория либо дефолтная (userId = null), либо принадлежит пользователю
+    const category = await prisma.category.findFirst({
+      where: {
+        id: categoryId,
+        OR: [{ userId }, { userId: null }],
+      },
+    });
+    if (!category) {
+      throw new Error('Category not found');
+    }
+    return category;
+  }
+
+  async getAll(userId: string, filters: TransactionFilters = {}) {
+    const where: any = { userId, isDeleted: false };
+
+    if (filters.accountId) where.accountId = filters.accountId;
+    if (filters.categoryId) where.categoryId = filters.categoryId;
+    if (filters.type) where.type = filters.type;
+
+    if (filters.dateFrom || filters.dateTo) {
+      where.transactionDate = {};
+      if (filters.dateFrom) where.transactionDate.gte = new Date(filters.dateFrom);
+      if (filters.dateTo) where.transactionDate.lte = new Date(filters.dateTo);
+    }
+
+    if (filters.amountMin !== undefined || filters.amountMax !== undefined) {
+      where.amount = {};
+      if (filters.amountMin !== undefined) where.amount.gte = filters.amountMin;
+      if (filters.amountMax !== undefined) where.amount.lte = filters.amountMax;
+    }
+
+    if (filters.search && filters.search.trim()) {
+      const q = filters.search.trim();
+      where.OR = [
+        { title: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+        { shop: { contains: q, mode: 'insensitive' } },
+        { location: { contains: q, mode: 'insensitive' } },
+        { category: { name: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
+
+    return prisma.transaction.findMany({
+      where,
+      include: { account: true, category: true, tags: { include: { tag: true } } },
+      orderBy: { transactionDate: 'desc' },
+      // Без явного лимита отдаём разумный дефолт, а не всю историю целиком —
+      // иначе с ростом количества операций ответ будет только пухнуть.
+      take: filters.limit ?? 500,
+    });
+  }
+
+  async getById(userId: string, id: string) {
+    const transaction = await prisma.transaction.findFirst({
+      where: { id, userId, isDeleted: false },
+      include: { account: true, category: true, tags: { include: { tag: true } } },
+    });
+
+    if (!transaction) {
+      throw new Error('Transaction not found');
+    }
+
+    return transaction;
+  }
+
+  // Для операций с корзиной (восстановление/удаление навсегда) — ищем ВКЛЮЧАЯ удалённые
+  private async getTrashedById(userId: string, id: string) {
+    const transaction = await prisma.transaction.findFirst({
+      where: { id, userId, isDeleted: true },
+      include: { account: true, category: true, tags: { include: { tag: true } } },
+    });
+
+    if (!transaction) {
+      throw new Error('Transaction not found in trash');
+    }
+
+    return transaction;
+  }
+
+  async create(userId: string, data: CreateTransactionDTO) {
+    if (!data.accountId || !data.categoryId) {
+      throw new Error('accountId and categoryId are required');
+    }
+
+    if (!data.amount || data.amount <= 0) {
+      throw new Error('Amount must be positive');
+    }
+
+    if (data.type !== 'income' && data.type !== 'expense') {
+      throw new Error('type must be income or expense');
+    }
+
+    const account = await this.assertAccountOwnership(userId, data.accountId);
+    await this.assertCategoryOwnership(userId, data.categoryId);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const transaction = await tx.transaction.create({
+        data: {
+          userId,
+          accountId: data.accountId,
+          categoryId: data.categoryId,
+          type: data.type,
+          amount: data.amount,
+          currency: account.currency,
+          title: data.title,
+          description: data.description,
+          shop: data.shop,
+          location: data.location,
+          transactionDate: data.transactionDate
+            ? new Date(data.transactionDate)
+            : new Date(),
+        },
+      });
+
+      if (data.tagIds && data.tagIds.length > 0) {
+        const validTagIds = (
+          await tx.tag.findMany({
+            where: { id: { in: data.tagIds }, userId },
+            select: { id: true },
+          })
+        ).map((t) => t.id);
+
+        if (validTagIds.length > 0) {
+          await tx.transactionTag.createMany({
+            data: validTagIds.map((tagId) => ({ transactionId: transaction.id, tagId })),
+          });
+        }
+      }
+
+      // Обновляем баланс счета
+      await tx.account.update({
+        where: { id: data.accountId },
+        data: {
+          balance:
+            data.type === 'income'
+              ? { increment: data.amount }
+              : { decrement: data.amount },
+        },
+      });
+
+      return tx.transaction.findUniqueOrThrow({
+        where: { id: transaction.id },
+        include: { account: true, category: true, tags: { include: { tag: true } } },
+      });
+    });
+
+    return result;
+  }
+
+  // Одна операция, разбитая сразу на несколько категорий (например, чек из
+  // супермаркета: часть суммы — "Еда", часть — "Дом"). Создаёт несколько
+  // связанных транзакций (по одной на категорию) с общим splitGroupId,
+  // баланс счёта списывается/начисляется один раз на общую сумму.
+  async createSplit(userId: string, data: CreateSplitTransactionDTO) {
+    if (!data.accountId) {
+      throw new Error('accountId is required');
+    }
+    if (data.type !== 'income' && data.type !== 'expense') {
+      throw new Error('type must be income or expense');
+    }
+    if (!data.parts || data.parts.length < 2) {
+      throw new Error('Split requires at least 2 parts');
+    }
+    for (const part of data.parts) {
+      if (!part.categoryId || !part.amount || part.amount <= 0) {
+        throw new Error('Each part needs a categoryId and a positive amount');
+      }
+    }
+
+    const account = await this.assertAccountOwnership(userId, data.accountId);
+    for (const part of data.parts) {
+      await this.assertCategoryOwnership(userId, part.categoryId);
+    }
+
+    const totalAmount = data.parts.reduce((sum, p) => sum + p.amount, 0);
+    const splitGroupId = randomUUID();
+    const transactionDate = data.transactionDate ? new Date(data.transactionDate) : new Date();
+
+    const result = await prisma.$transaction(async (tx) => {
+      const created = [];
+      for (const part of data.parts) {
+        const transaction = await tx.transaction.create({
+          data: {
+            userId,
+            accountId: data.accountId,
+            categoryId: part.categoryId,
+            type: data.type,
+            amount: part.amount,
+            currency: account.currency,
+            title: data.title,
+            description: data.description,
+            shop: data.shop,
+            splitGroupId,
+            transactionDate,
+          },
+        });
+        created.push(transaction.id);
+      }
+
+      await tx.account.update({
+        where: { id: data.accountId },
+        data: {
+          balance:
+            data.type === 'income'
+              ? { increment: totalAmount }
+              : { decrement: totalAmount },
+        },
+      });
+
+      return tx.transaction.findMany({
+        where: { id: { in: created } },
+        include: { account: true, category: true, tags: { include: { tag: true } } },
+        orderBy: { createdAt: 'asc' },
+      });
+    });
+
+    return result;
+  }
+
+  // Массовый импорт из выписки банка (CSV/Excel) — сам файл парсится на
+  // фронте, сюда прилетают уже готовые нормализованные строки.
+  async bulkImport(userId: string, accountId: string, rows: ImportRow[]) {
+    if (!rows || rows.length === 0) {
+      throw new Error('No rows to import');
+    }
+    if (rows.length > 1000) {
+      throw new Error('Too many rows in one import (max 1000)');
+    }
+
+    const account = await this.assertAccountOwnership(userId, accountId);
+
+    const categoryIds = Array.from(new Set(rows.map((r) => r.categoryId)));
+    for (const categoryId of categoryIds) {
+      await this.assertCategoryOwnership(userId, categoryId);
+    }
+
+    let incomeTotal = 0;
+    let expenseTotal = 0;
+    for (const row of rows) {
+      if (row.amount <= 0) continue;
+      if (row.type === 'income') incomeTotal += row.amount;
+      else expenseTotal += row.amount;
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      let createdCount = 0;
+
+      for (const row of rows) {
+        if (!row.amount || row.amount <= 0) continue;
+
+        await tx.transaction.create({
+          data: {
+            userId,
+            accountId,
+            categoryId: row.categoryId,
+            type: row.type,
+            amount: row.amount,
+            currency: account.currency,
+            title: row.title,
+            transactionDate: new Date(row.date),
+          },
+        });
+        createdCount++;
+      }
+
+      await tx.account.update({
+        where: { id: accountId },
+        data: {
+          balance: {
+            increment: incomeTotal - expenseTotal,
+          },
+        },
+      });
+
+      return { imported: createdCount };
+    });
+
+    return result;
+  }
+
+  async update(userId: string, id: string, data: UpdateTransactionDTO) {
+    const existing = await this.getById(userId, id);
+
+    let newAccount = null;
+    if (data.accountId) {
+      newAccount = await this.assertAccountOwnership(userId, data.accountId);
+    }
+    if (data.categoryId) {
+      await this.assertCategoryOwnership(userId, data.categoryId);
+    }
+
+    const newAccountId = data.accountId ?? existing.accountId;
+    const newAmount = data.amount ?? Number(existing.amount);
+
+    if (data.amount !== undefined && data.amount <= 0) {
+      throw new Error('Amount must be positive');
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Откатываем эффект старой транзакции на старом счете.
+      // Если валюту счёта поменяли после создания операции, старая сумма
+      // хранится в уже "чужой" для счёта валюте — сначала конвертируем.
+      const oldAccountCurrency = existing.account.currency;
+      let oldAmountInAccountCurrency = Number(existing.amount);
+      if (existing.currency !== oldAccountCurrency) {
+        let rates: Record<string, number> = {};
+        try {
+          rates = (await getExchangeRates()).rates;
+        } catch {
+          // без курса — откатываем как есть, лучше приблизительно, чем не откатить вовсе
+        }
+        oldAmountInAccountCurrency = convertAmount(
+          Number(existing.amount),
+          existing.currency,
+          oldAccountCurrency,
+          rates
+        );
+      }
+
+      const oldSign = existing.type === 'income' ? -1 : 1;
+      await tx.account.update({
+        where: { id: existing.accountId },
+        data: {
+          balance: { increment: oldSign * oldAmountInAccountCurrency },
+        },
+      });
+
+      // Применяем эффект новой версии на (возможно новом) счете
+      const newSign = existing.type === 'income' ? 1 : -1;
+      await tx.account.update({
+        where: { id: newAccountId },
+        data: {
+          balance: { increment: newSign * newAmount },
+        },
+      });
+
+      const updated = await tx.transaction.update({
+        where: { id },
+        data: {
+          ...(data.accountId !== undefined && {
+            accountId: data.accountId,
+            currency: newAccount!.currency,
+          }),
+          ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+          ...(data.amount !== undefined && { amount: data.amount }),
+          ...(data.title !== undefined && { title: data.title }),
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.shop !== undefined && { shop: data.shop }),
+          ...(data.location !== undefined && { location: data.location }),
+          ...(data.rating !== undefined && {
+            rating: data.rating,
+            ratingDate: new Date(),
+          }),
+          ...(data.transactionDate !== undefined && {
+            transactionDate: new Date(data.transactionDate),
+          }),
+        },
+      });
+
+      if (data.tagIds !== undefined) {
+        const validTagIds =
+          data.tagIds.length > 0
+            ? (
+                await tx.tag.findMany({
+                  where: { id: { in: data.tagIds }, userId },
+                  select: { id: true },
+                })
+              ).map((t) => t.id)
+            : [];
+
+        await tx.transactionTag.deleteMany({ where: { transactionId: id } });
+        if (validTagIds.length > 0) {
+          await tx.transactionTag.createMany({
+            data: validTagIds.map((tagId) => ({ transactionId: id, tagId })),
+          });
+        }
+      }
+
+      return tx.transaction.findUniqueOrThrow({
+        where: { id },
+        include: { account: true, category: true, tags: { include: { tag: true } } },
+      });
+    });
+
+    return result;
+  }
+
+  // Мягкое удаление — операция уходит в корзину, баланс сразу пересчитывается
+  // (ровно так же, как раньше при обычном удалении), а сама запись остаётся
+  // в базе ещё 30 дней на случай, если удалили по ошибке.
+  async delete(userId: string, id: string) {
+    const existing = await this.getById(userId, id);
+
+    const accountCurrency = existing.account.currency;
+    let amountInAccountCurrency = Number(existing.amount);
+    if (existing.currency !== accountCurrency) {
+      let rates: Record<string, number> = {};
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — откатываем как есть
+      }
+      amountInAccountCurrency = convertAmount(
+        Number(existing.amount),
+        existing.currency,
+        accountCurrency,
+        rates
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const sign = existing.type === 'income' ? -1 : 1;
+
+      await tx.account.update({
+        where: { id: existing.accountId },
+        data: {
+          balance: { increment: sign * amountInAccountCurrency },
+        },
+      });
+
+      await tx.transaction.update({
+        where: { id },
+        data: { isDeleted: true, deletedAt: new Date() },
+      });
+    });
+  }
+
+  // Магазины, которые пользователь уже вводил раньше — для автоподстановки в форме
+  async getShopSuggestions(userId: string): Promise<string[]> {
+    const transactions = await prisma.transaction.findMany({
+      where: { userId, isDeleted: false, shop: { not: null } },
+      select: { shop: true },
+      orderBy: { transactionDate: 'desc' },
+      take: 200, // достаточно недавней истории, не гоняем всю таблицу
+    });
+
+    const seen = new Set<string>();
+    const suggestions: string[] = [];
+    for (const t of transactions) {
+      const shop = t.shop?.trim();
+      if (shop && !seen.has(shop.toLowerCase())) {
+        seen.add(shop.toLowerCase());
+        suggestions.push(shop);
+      }
+      if (suggestions.length >= 20) break;
+    }
+
+    return suggestions;
+  }
+
+  async getDeleted(userId: string, limit = 50) {
+    return prisma.transaction.findMany({
+      where: { userId, isDeleted: true },
+      include: { account: true, category: true, tags: { include: { tag: true } } },
+      orderBy: { deletedAt: 'desc' },
+      take: limit,
+    });
+  }
+
+  // Восстановить операцию из корзины — заново применяем её эффект на баланс
+  // (счёт мог за это время сменить валюту, поэтому снова конвертируем)
+  async restore(userId: string, id: string) {
+    const existing = await this.getTrashedById(userId, id);
+
+    const accountCurrency = existing.account.currency;
+    let amountInAccountCurrency = Number(existing.amount);
+    if (existing.currency !== accountCurrency) {
+      let rates: Record<string, number> = {};
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — восстанавливаем как есть
+      }
+      amountInAccountCurrency = convertAmount(
+        Number(existing.amount),
+        existing.currency,
+        accountCurrency,
+        rates
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const sign = existing.type === 'income' ? 1 : -1;
+
+      await tx.account.update({
+        where: { id: existing.accountId },
+        data: {
+          balance: { increment: sign * amountInAccountCurrency },
+        },
+      });
+
+      await tx.transaction.update({
+        where: { id },
+        data: { isDeleted: false, deletedAt: null },
+      });
+    });
+  }
+
+  // Удалить окончательно (из корзины). Баланс уже учтён при переносе в корзину,
+  // поэтому здесь его больше не трогаем.
+  async permanentDelete(userId: string, id: string) {
+    await this.getTrashedById(userId, id);
+    await prisma.transaction.delete({ where: { id } });
+  }
+
+  // Автоочистка корзины — окончательно удаляет всё, что старше N дней
+  async emptyTrash(userId: string, olderThanDays = 30) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - olderThanDays);
+
+    const result = await prisma.transaction.deleteMany({
+      where: {
+        userId,
+        isDeleted: true,
+        deletedAt: { lt: cutoff },
+      },
+    });
+
+    return { count: result.count };
+  }
+
+  async addRating(userId: string, id: string, rating: number) {
+    if (rating < 1 || rating > 5) {
+      throw new Error('Rating must be between 1 and 5');
+    }
+
+    await this.getById(userId, id);
+
+    return prisma.transaction.update({
+      where: { id },
+      data: { rating, ratingDate: new Date() },
+      include: { account: true, category: true, tags: { include: { tag: true } } },
+    });
+  }
+
+  async getRecent(userId: string, limit = 10) {
+    return prisma.transaction.findMany({
+      where: { userId, isDeleted: false },
+      include: { account: true, category: true, tags: { include: { tag: true } } },
+      orderBy: { transactionDate: 'desc' },
+      take: limit,
+    });
+  }
+
+  async getTodayStats(userId: string) {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const [user, transactions] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { primaryCurrency: true } }),
+      prisma.transaction.findMany({
+        where: {
+          userId,
+          isDeleted: false,
+          transactionDate: { gte: startOfDay, lte: endOfDay },
+        },
+        include: { account: { select: { currency: true } } },
+      }),
+    ]);
+
+    const primaryCurrency = user?.primaryCurrency || '₸';
+    const hasMixedCurrencies = transactions.some(
+      (t) => t.currency && t.currency !== primaryCurrency
+    );
+
+    let rates: Record<string, number> = {};
+    if (hasMixedCurrencies) {
+      try {
+        rates = (await getExchangeRates()).rates;
+      } catch {
+        // без курса — считаем без конвертации
+      }
+    }
+
+    const toPrimary = (amount: number, fromCurrency?: string) =>
+      convertAmount(amount, fromCurrency || primaryCurrency, primaryCurrency, rates);
+
+    const income = transactions
+      .filter((t) => t.type === 'income')
+      .reduce((sum, t) => sum + toPrimary(Number(t.amount), t.currency), 0);
+
+    const expense = transactions
+      .filter((t) => t.type === 'expense')
+      .reduce((sum, t) => sum + toPrimary(Number(t.amount), t.currency), 0);
+
+    return { income, expense, currency: primaryCurrency };
+  }
+}
+
+export default new TransactionService();

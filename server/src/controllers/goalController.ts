@@ -1,0 +1,190 @@
+import { Response, NextFunction } from 'express';
+import goalService from '../services/goalService';
+import { AuthRequest } from '../middlewares/auth';
+
+class GoalController {
+  async getAll(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const goals = await goalService.getAll(userId);
+
+      res.json(goals);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getById(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { id } = req.params;
+
+      const goal = await goalService.getById(id, userId);
+
+      res.json(goal);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async create(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { name, targetAmount, accountId, deadline, icon, items, currency } = req.body;
+      const hasItems = Array.isArray(items) && items.length > 0;
+
+      if (!name) {
+        return res.status(400).json({ message: 'name is required' });
+      }
+
+      if (!hasItems) {
+        if (!targetAmount) {
+          return res.status(400).json({
+            message: 'name and targetAmount are required',
+          });
+        }
+        if (targetAmount <= 0) {
+          return res.status(400).json({
+            message: 'targetAmount must be positive',
+          });
+        }
+      }
+
+      const goal = await goalService.create(userId, {
+        name,
+        targetAmount: hasItems ? 0 : parseFloat(targetAmount),
+        accountId,
+        deadline: deadline ? new Date(deadline) : undefined,
+        icon,
+        currency,
+        items: hasItems
+          ? items.map((i: any) => ({ name: i.name, targetAmount: parseFloat(i.targetAmount) }))
+          : undefined,
+      });
+
+      res.status(201).json(goal);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async update(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { id } = req.params;
+      const { name, targetAmount, deadline, icon, isCompleted } = req.body;
+
+      // Валюту цели после создания менять нельзя — сумма уже накоплена в
+      // исходной валюте, и без конвертации переименование валюты просто
+      // "переклеит" ярлык на другую сумму (та же ошибка, что уже чинили
+      // с переводами и транзакциями). Поэтому здесь только явный список
+      // разрешённых полей, а не req.body целиком.
+      const updateData: Record<string, any> = {};
+      if (name !== undefined) updateData.name = name;
+      if (targetAmount !== undefined) updateData.targetAmount = parseFloat(targetAmount);
+      if (deadline !== undefined) updateData.deadline = deadline ? new Date(deadline) : null;
+      if (icon !== undefined) updateData.icon = icon;
+      if (isCompleted !== undefined) updateData.isCompleted = isCompleted;
+
+      const goal = await goalService.update(id, userId, updateData);
+
+      res.json(goal);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async delete(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { id } = req.params;
+
+      const result = await goalService.delete(id, userId);
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deposit(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { id } = req.params;
+      const { amount, accountId, itemId } = req.body;
+
+      if (!amount || !accountId) {
+        return res.status(400).json({
+          message: 'amount and accountId are required',
+        });
+      }
+
+      const goal = await goalService.deposit(
+        id,
+        userId,
+        parseFloat(amount),
+        accountId,
+        itemId || undefined
+      );
+
+      res.json(goal);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async withdraw(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { id } = req.params;
+      const { amount, accountId, itemId } = req.body;
+
+      if (!amount || !accountId) {
+        return res.status(400).json({
+          message: 'amount and accountId are required',
+        });
+      }
+
+      const goal = await goalService.withdraw(
+        id,
+        userId,
+        parseFloat(amount),
+        accountId,
+        itemId || undefined
+      );
+
+      res.json(goal);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async addItem(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { id } = req.params;
+      const { name, targetAmount } = req.body;
+
+      const goal = await goalService.addItem(id, userId, name, parseFloat(targetAmount));
+
+      res.status(201).json(goal);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async removeItem(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { id, itemId } = req.params;
+
+      const goal = await goalService.removeItem(id, userId, itemId);
+
+      res.json(goal);
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
+export default new GoalController();

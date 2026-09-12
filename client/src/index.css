@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Светлая тема (значения по умолчанию) */
+  --color-bg: 249 250 251; /* #F9FAFB */
+  --color-surface: 255 255 255; /* #FFFFFF */
+  --color-muted: 243 244 246; /* #F3F4F6 */
+  --color-muted-strong: 229 231 235; /* #E5E7EB */
+  --color-text-primary: 17 24 39; /* #111827 */
+  --color-text-secondary: 107 114 128; /* #6B7280 */
+  --color-border: 229 231 235; /* #E5E7EB */
+  --color-accent: 59 130 246; /* #3B82F6 */
+  --color-income: 22 163 74; /* #16A34A */
+  --color-expense: 220 38 38; /* #DC2626 */
+}
+
+.dark {
+  /* Тёмная тема — приглушённый графитово-синий, не чистый чёрный */
+  --color-bg: 15 17 21; /* #0F1115 */
+  --color-surface: 26 29 36; /* #1A1D24 */
+  --color-muted: 35 39 48; /* #232733 */
+  --color-muted-strong: 42 45 53; /* #2A2D35 */
+  --color-text-primary: 232 233 237; /* #E8E9ED */
+  --color-text-secondary: 156 163 175; /* #9CA3AF */
+  --color-border: 42 45 53; /* #2A2D35 */
+  --color-accent: 59 130 246; /* #3B82F6 */
+  --color-income: 74 222 128; /* #4ADE80 */
+  --color-expense: 248 113 113; /* #F87171 */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-text-primary));
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Мобильные улучшения */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px; /* Предотвращает zoom на iOS */
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px; /* Предотвращает zoom на iOS */
+  }
+}
+
+/* Safe area для iOS */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Скрываем скроллбар но оставляем функционал */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Анимация появления */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Улучшенный фокус для accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Плавная прокрутка */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Предотвращаем выделение текста на мобильных при тапах */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Активное состояние для мобильных кнопок */
+.active\:scale-95:active {
+  transform: scale(0.95);
+}
+
+/* Gradient backgrounds */
+.gradient-blue {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+}
+
+.gradient-green {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+}
+
+.gradient-red {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+}
+
+/* Loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Skeleton loading */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--color-muted)) 0px,
+    rgb(var(--color-muted-strong)) 40px,
+    rgb(var(--color-muted)) 80px
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
