@@ -214,24 +214,48 @@ class AnalyticsService {
       }
     }
 
-    // Группируем по датам
-    const trendMap = new Map();
-
-    transactions.forEach((t) => {
-      let dateKey: string;
-      const date = new Date(t.transactionDate);
-
+    // Ключ бакета по той же схеме, что и группировка транзакций ниже (недели — с понедельника)
+    const bucketKey = (date: Date): string => {
       if (groupBy === 'day') {
-        dateKey = date.toISOString().split('T')[0];
+        return date.toISOString().split('T')[0];
       } else if (groupBy === 'week') {
         const weekStart = new Date(date);
         const dayOfWeek = date.getDay();
         const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         weekStart.setDate(date.getDate() - diffToMonday);
-        dateKey = weekStart.toISOString().split('T')[0];
-      } else {
-        dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        return weekStart.toISOString().split('T')[0];
       }
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    };
+
+    // Группируем по датам
+    const trendMap = new Map();
+
+    // Заранее создаём все бакеты периода (даже без операций — будут нулевыми),
+    // чтобы график всегда показывал ровные интервалы (напр. 4-5 недель на месяц), а не только те точки, где были траты
+    const bucketDate = new Date(dateFrom);
+    while (bucketDate <= dateTo) {
+      const key = bucketKey(bucketDate);
+      if (!trendMap.has(key)) {
+        trendMap.set(key, { date: key, income: 0, expense: 0 });
+      }
+      if (groupBy === 'day') {
+        bucketDate.setDate(bucketDate.getDate() + 1);
+      } else if (groupBy === 'week') {
+        bucketDate.setDate(bucketDate.getDate() + 7);
+      } else {
+        bucketDate.setMonth(bucketDate.getMonth() + 1);
+      }
+    }
+    // и последний бакет, куда попадает сам dateTo (на случай если шаг его перескочил)
+    const lastKey = bucketKey(dateTo);
+    if (!trendMap.has(lastKey)) {
+      trendMap.set(lastKey, { date: lastKey, income: 0, expense: 0 });
+    }
+
+    transactions.forEach((t) => {
+      const date = new Date(t.transactionDate);
+      const dateKey = bucketKey(date);
 
       if (!trendMap.has(dateKey)) {
         trendMap.set(dateKey, {

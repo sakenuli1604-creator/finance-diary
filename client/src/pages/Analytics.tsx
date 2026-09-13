@@ -36,6 +36,8 @@ export const Analytics: React.FC = () => {
     loadData();
   }, [period, excludeProjects]);
 
+  const trendsGroupBy = period === 'week' ? 'day' : period === 'month' ? 'week' : 'month';
+
   const loadData = async () => {
     setIsLoading(true);
     try {
@@ -57,7 +59,7 @@ export const Analytics: React.FC = () => {
         await Promise.all([
           analyticsAPI.getSummary(fromStr, toStr, excludeProjects),
           analyticsAPI.getByCategory(fromStr, toStr, excludeProjects),
-          analyticsAPI.getTrends(fromStr, toStr, period === 'week' ? 'day' : 'week', excludeProjects),
+          analyticsAPI.getTrends(fromStr, toStr, trendsGroupBy, excludeProjects),
           analyticsAPI.getTopExpenses(fromStr, toStr, 5, excludeProjects),
           analyticsAPI.getProjects(fromStr, toStr),
         ]);
@@ -211,6 +213,9 @@ export const Analytics: React.FC = () => {
                     tick={{ fontSize: 12 }}
                     tickFormatter={(value) => {
                       const date = new Date(value);
+                      if (trendsGroupBy === 'month') {
+                        return date.toLocaleDateString('ru-RU', { month: 'short' });
+                      }
                       return `${date.getDate()}/${date.getMonth() + 1}`;
                     }}
                   />
@@ -219,6 +224,9 @@ export const Analytics: React.FC = () => {
                     formatter={(value: any) => formatAmount(value) + ' ' + primaryCurrency}
                     labelFormatter={(label) => {
                       const date = new Date(label);
+                      if (trendsGroupBy === 'month') {
+                        return date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+                      }
                       return date.toLocaleDateString('ru-RU');
                     }}
                   />
