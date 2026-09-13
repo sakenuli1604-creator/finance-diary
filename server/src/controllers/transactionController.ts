@@ -102,14 +102,11 @@ class TransactionController {
   async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;
-      // временный диагностический лог — уберём, как только разберёмся, почему теги не сохраняются
-      console.log('[DEBUG update transaction]', req.params.id, 'tagIds received:', req.body.tagIds);
       const transaction = await transactionService.update(
         userId,
         req.params.id,
         req.body
       );
-      console.log('[DEBUG update transaction] saved tags:', transaction.tags?.map((t: any) => t.tag.name));
 
       res.json(transaction);
     } catch (error) {

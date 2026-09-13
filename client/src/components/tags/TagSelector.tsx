@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, X, Briefcase } from 'lucide-react';
+import { Plus, X, Briefcase, Check } from 'lucide-react';
 import { useTagsStore } from '../../store/tagsStore';
 
 interface TagSelectorProps {
@@ -12,6 +12,7 @@ export const TagSelector: React.FC<TagSelectorProps> = ({ selectedTagIds, onChan
   const [isAdding, setIsAdding] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [newTagIsProject, setNewTagIsProject] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     fetchTags();
@@ -25,10 +26,10 @@ export const TagSelector: React.FC<TagSelectorProps> = ({ selectedTagIds, onChan
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitNewTag = async () => {
     const name = newTagName.trim().replace(/^#/, '');
-    if (!name) return;
+    if (!name || isCreating) return;
+    setIsCreating(true);
     try {
       const tag = await createTag({ name, isProject: newTagIsProject });
       onChange([...selectedTagIds, tag.id]);
@@ -37,7 +38,14 @@ export const TagSelector: React.FC<TagSelectorProps> = ({ selectedTagIds, onChan
       setIsAdding(false);
     } catch (error) {
       console.error('Failed to create tag:', error);
+    } finally {
+      setIsCreating(false);
     }
+  };
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitNewTag();
   };
 
   return (
@@ -68,13 +76,13 @@ export const TagSelector: React.FC<TagSelectorProps> = ({ selectedTagIds, onChan
         })}
 
         {isAdding ? (
-          <form onSubmit={handleCreate} className="flex items-center gap-2">
+          <form onSubmit={handleCreate} className="flex flex-wrap items-center gap-2 w-full">
             <input
               autoFocus
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
               placeholder="название"
-              className="w-28 px-2 py-1 text-sm border border-line rounded-full outline-none bg-surface text-primary"
+              className="w-24 px-2 py-1 text-sm border border-line rounded-full outline-none bg-surface text-primary"
             />
             <label className="flex items-center gap-1 text-xs text-secondary whitespace-nowrap">
               <input
@@ -86,12 +94,21 @@ export const TagSelector: React.FC<TagSelectorProps> = ({ selectedTagIds, onChan
             </label>
             <button
               type="button"
+              onClick={submitNewTag}
+              disabled={!newTagName.trim() || isCreating}
+              className="text-primary disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+              aria-label="Добавить тег"
+            >
+              <Check size={18} />
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 setIsAdding(false);
                 setNewTagName('');
                 setNewTagIsProject(false);
               }}
-              className="text-secondary hover:text-primary"
+              className="text-secondary hover:text-primary shrink-0"
             >
               <X size={16} />
             </button>
