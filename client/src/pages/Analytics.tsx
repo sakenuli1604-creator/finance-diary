@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, TrendingUp, TrendingDown, Briefcase } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Briefcase, Hash } from 'lucide-react';
 import { analyticsAPI, ProjectAnalytics } from '../api/analytics';
 import { useAuthStore } from '../store/authStore';
 import { Card } from '../components/ui/Card';
@@ -29,12 +29,13 @@ export const Analytics: React.FC = () => {
   const [trends, setTrends] = useState<any[]>([]);
   const [topExpenses, setTopExpenses] = useState<any[]>([]);
   const [projects, setProjects] = useState<ProjectAnalytics[]>([]);
-  const [excludeProjects, setExcludeProjects] = useState(false);
+  const [tagsBreakdown, setTagsBreakdown] = useState<ProjectAnalytics[]>([]);
+  const [excludeTagIds, setExcludeTagIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadData();
-  }, [period, excludeProjects]);
+  }, [period, excludeTagIds]);
 
   const trendsGroupBy = period === 'week' ? 'day' : period === 'month' ? 'week' : 'month';
 
@@ -55,13 +56,14 @@ export const Analytics: React.FC = () => {
       const fromStr = from.toISOString().split('T')[0];
       const toStr = now.toISOString().split('T')[0];
 
-      const [summaryData, categoryData, trendsData, topExpensesData, projectsData] =
+      const [summaryData, categoryData, trendsData, topExpensesData, projectsData, tagsBreakdownData] =
         await Promise.all([
-          analyticsAPI.getSummary(fromStr, toStr, excludeProjects),
-          analyticsAPI.getByCategory(fromStr, toStr, excludeProjects),
-          analyticsAPI.getTrends(fromStr, toStr, trendsGroupBy, excludeProjects),
-          analyticsAPI.getTopExpenses(fromStr, toStr, 5, excludeProjects),
+          analyticsAPI.getSummary(fromStr, toStr, excludeTagIds),
+          analyticsAPI.getByCategory(fromStr, toStr, excludeTagIds),
+          analyticsAPI.getTrends(fromStr, toStr, trendsGroupBy, excludeTagIds),
+          analyticsAPI.getTopExpenses(fromStr, toStr, 5, excludeTagIds),
           analyticsAPI.getProjects(fromStr, toStr),
+          analyticsAPI.getTagsBreakdown(fromStr, toStr),
         ]);
 
       setSummary(summaryData);
@@ -69,6 +71,7 @@ export const Analytics: React.FC = () => {
       setTrends(trendsData);
       setTopExpenses(topExpensesData);
       setProjects(projectsData);
+      setTagsBreakdown(tagsBreakdownData);
     } catch (error) {
       console.error('Failed to load analytics:', error);
     } finally {
@@ -145,14 +148,32 @@ export const Analytics: React.FC = () => {
           </div>
 
           {projects.length > 0 && (
-            <label className="flex items-center gap-2 text-sm text-secondary mt-3">
-              <input
-                type="checkbox"
-                checked={excludeProjects}
-                onChange={(e) => setExcludeProjects(e.target.checked)}
-              />
-              Скрыть проектные расходы (сборка сервера и т.п.) из основной аналитики
-            </label>
+            <div className="mt-3">
+              <p className="text-sm text-secondary mb-1.5">
+                Скрыть из основной аналитики:
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                {projects.map((project) => (
+                  <label
+                    key={project.tagId}
+                    className="flex items-center gap-1.5 text-sm text-secondary"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={excludeTagIds.includes(project.tagId)}
+                      onChange={(e) =>
+                        setExcludeTagIds((prev) =>
+                          e.target.checked
+                            ? [...prev, project.tagId]
+                            : prev.filter((id) => id !== project.tagId)
+                        )
+                      }
+                    />
+                    #{project.name}
+                  </label>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -385,6 +406,38 @@ export const Analytics: React.FC = () => {
             <p className="text-xs text-secondary mt-3">
               Сумма, потраченная на каждый проект целиком — независимо от того, скрыт ли он из аналитики выше.
             </p>
+          </Card>
+        )}
+
+        {/* By tag (обычные теги — не проектные) */}
+        {tagsBreakdown.length > 0 && (
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Hash size={18} className="text-secondary" />
+              <h2 className="text-lg font-semibold">По тегам</h2>
+            </div>
+            <div className="space-y-2">
+              {tagsBreakdown.map((tag) => (
+                <div
+                  key={tag.tagId}
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: tag.color }}
+                    />
+                    <div>
+                      <p className="font-medium text-primary">#{tag.name}</p>
+                      <p className="text-xs text-secondary">{tag.count} операций</p>
+                    </div>
+                  </div>
+                  <p className="font-semibold text-primary">
+                    {formatAmount(tag.total)} {primaryCurrency}
+                  </p>
+                </div>
+              ))}
+            </div>
           </Card>
         )}
 

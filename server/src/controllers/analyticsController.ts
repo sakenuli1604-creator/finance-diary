@@ -2,15 +2,22 @@ import { Response, NextFunction } from 'express';
 import analyticsService from '../services/analyticsService';
 import { AuthRequest } from '../middlewares/auth';
 
+// Принимает excludeTagIds как "id1,id2" в query-строке
+function parseExcludeTagIds(req: AuthRequest): string[] {
+  const raw = req.query.excludeTagIds;
+  if (!raw || typeof raw !== 'string') return [];
+  return raw.split(',').map((id) => id.trim()).filter(Boolean);
+}
+
 class AnalyticsController {
   async getSummary(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;
       const dateFrom = req.query.from ? new Date(req.query.from as string) : undefined;
       const dateTo = req.query.to ? new Date(req.query.to as string) : undefined;
-      const excludeProjects = req.query.excludeProjects === 'true';
+      const excludeTagIds = parseExcludeTagIds(req);
 
-      const summary = await analyticsService.getSummary(userId, dateFrom, dateTo, excludeProjects);
+      const summary = await analyticsService.getSummary(userId, dateFrom, dateTo, excludeTagIds);
 
       res.json(summary);
     } catch (error) {
@@ -23,9 +30,9 @@ class AnalyticsController {
       const userId = req.userId!;
       const dateFrom = req.query.from ? new Date(req.query.from as string) : undefined;
       const dateTo = req.query.to ? new Date(req.query.to as string) : undefined;
-      const excludeProjects = req.query.excludeProjects === 'true';
+      const excludeTagIds = parseExcludeTagIds(req);
 
-      const data = await analyticsService.getByCategory(userId, dateFrom, dateTo, excludeProjects);
+      const data = await analyticsService.getByCategory(userId, dateFrom, dateTo, excludeTagIds);
 
       res.json(data);
     } catch (error) {
@@ -46,9 +53,9 @@ class AnalyticsController {
       const dateFrom = new Date(req.query.from as string);
       const dateTo = new Date(req.query.to as string);
       const groupBy = (req.query.groupBy as 'day' | 'week' | 'month') || 'day';
-      const excludeProjects = req.query.excludeProjects === 'true';
+      const excludeTagIds = parseExcludeTagIds(req);
 
-      const trends = await analyticsService.getTrends(userId, dateFrom, dateTo, groupBy, excludeProjects);
+      const trends = await analyticsService.getTrends(userId, dateFrom, dateTo, groupBy, excludeTagIds);
 
       res.json(trends);
     } catch (error) {
@@ -62,14 +69,14 @@ class AnalyticsController {
       const dateFrom = req.query.from ? new Date(req.query.from as string) : undefined;
       const dateTo = req.query.to ? new Date(req.query.to as string) : undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      const excludeProjects = req.query.excludeProjects === 'true';
+      const excludeTagIds = parseExcludeTagIds(req);
 
       const expenses = await analyticsService.getTopExpenses(
         userId,
         dateFrom,
         dateTo,
         limit,
-        excludeProjects
+        excludeTagIds
       );
 
       res.json(expenses);
@@ -87,6 +94,20 @@ class AnalyticsController {
       const projects = await analyticsService.getProjectsBreakdown(userId, dateFrom, dateTo);
 
       res.json(projects);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getTagsBreakdown(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const dateFrom = req.query.from ? new Date(req.query.from as string) : undefined;
+      const dateTo = req.query.to ? new Date(req.query.to as string) : undefined;
+
+      const tags = await analyticsService.getRegularTagsBreakdown(userId, dateFrom, dateTo);
+
+      res.json(tags);
     } catch (error) {
       next(error);
     }

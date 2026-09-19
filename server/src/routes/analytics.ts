@@ -11,6 +11,7 @@ router.get('/by-category', analyticsController.getByCategory);
 router.get('/trends', analyticsController.getTrends);
 router.get('/top-expenses', analyticsController.getTopExpenses);
 router.get('/projects', analyticsController.getProjectsBreakdown);
+router.get('/tags-breakdown', analyticsController.getTagsBreakdown);
 router.get('/expensive-days', analyticsController.getExpensiveDays);
 router.get('/accounts-breakdown', analyticsController.getAccountsBreakdown);
 router.get('/rating-stats', analyticsController.getRatingStats);

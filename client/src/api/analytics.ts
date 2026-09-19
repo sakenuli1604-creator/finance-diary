@@ -34,16 +34,16 @@ export interface ProjectAnalytics {
 }
 
 export const analyticsAPI = {
-  getSummary: async (from?: string, to?: string, excludeProjects = false): Promise<AnalyticsSummary> => {
+  getSummary: async (from?: string, to?: string, excludeTagIds: string[] = []): Promise<AnalyticsSummary> => {
     const response = await api.get<AnalyticsSummary>('/analytics/summary', {
-      params: { from, to, excludeProjects },
+      params: { from, to, excludeTagIds: excludeTagIds.join(',') },
     });
     return response.data;
   },
 
-  getByCategory: async (from?: string, to?: string, excludeProjects = false): Promise<CategoryAnalytics[]> => {
+  getByCategory: async (from?: string, to?: string, excludeTagIds: string[] = []): Promise<CategoryAnalytics[]> => {
     const response = await api.get<CategoryAnalytics[]>('/analytics/by-category', {
-      params: { from, to, excludeProjects },
+      params: { from, to, excludeTagIds: excludeTagIds.join(',') },
     });
     return response.data;
   },
@@ -52,23 +52,30 @@ export const analyticsAPI = {
     from: string,
     to: string,
     groupBy: 'day' | 'week' | 'month' = 'day',
-    excludeProjects = false
+    excludeTagIds: string[] = []
   ): Promise<TrendData[]> => {
     const response = await api.get<TrendData[]>('/analytics/trends', {
-      params: { from, to, groupBy, excludeProjects },
+      params: { from, to, groupBy, excludeTagIds: excludeTagIds.join(',') },
     });
     return response.data;
   },
 
-  getTopExpenses: async (from?: string, to?: string, limit = 10, excludeProjects = false): Promise<any[]> => {
+  getTopExpenses: async (from?: string, to?: string, limit = 10, excludeTagIds: string[] = []): Promise<any[]> => {
     const response = await api.get('/analytics/top-expenses', {
-      params: { from, to, limit, excludeProjects },
+      params: { from, to, limit, excludeTagIds: excludeTagIds.join(',') },
     });
     return response.data;
   },
 
   getProjects: async (from?: string, to?: string): Promise<ProjectAnalytics[]> => {
     const response = await api.get<ProjectAnalytics[]>('/analytics/projects', {
+      params: { from, to },
+    });
+    return response.data;
+  },
+
+  getTagsBreakdown: async (from?: string, to?: string): Promise<ProjectAnalytics[]> => {
+    const response = await api.get<ProjectAnalytics[]>('/analytics/tags-breakdown', {
       params: { from, to },
     });
     return response.data;

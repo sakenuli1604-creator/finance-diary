@@ -3,21 +3,23 @@ import { getExchangeRates } from './exchangeRateService';
 import { convertAmount } from '../utils/currency';
 
 
-// Проектный тег — разовая/целевая трата (напр. сборка сервера).
-// excludeProjects=true исключает из "обычной" аналитики транзакции с хотя бы одним таким тегом.
-function isProjectTransaction(t: { tags?: Array<{ tag: { isProject: boolean } }> }) {
-  return !!t.tags?.some((tt) => tt.tag.isProject);
+// excludeTagIds — конкретные проектные теги, которые пользователь сейчас решил скрыть из "обычной" аналитики
+// (не все проектные теги разом — только выбранные).
+function hasExcludedTag(t: { tags?: Array<{ tag: { id: string } }> }, excludeTagIds: Set<string>) {
+  return !!t.tags?.some((tt) => excludeTagIds.has(tt.tag.id));
 }
 
-function filterProjects<T extends { tags?: Array<{ tag: { isProject: boolean } }> }>(
+function filterExcluded<T extends { tags?: Array<{ tag: { id: string } }> }>(
   transactions: T[],
-  excludeProjects: boolean
+  excludeTagIds: string[]
 ): T[] {
-  return excludeProjects ? transactions.filter((t) => !isProjectTransaction(t)) : transactions;
+  if (excludeTagIds.length === 0) return transactions;
+  const set = new Set(excludeTagIds);
+  return transactions.filter((t) => !hasExcludedTag(t, set));
 }
 
 class AnalyticsService {
-  async getSummary(userId: string, dateFrom?: Date, dateTo?: Date, excludeProjects = false) {
+  async getSummary(userId: string, dateFrom?: Date, dateTo?: Date, excludeTagIds: string[] = []) {
     const where: any = { userId, isDeleted: false };
 
     if (dateFrom || dateTo) {
@@ -42,7 +44,7 @@ class AnalyticsService {
       }),
     ]);
 
-    const transactions = filterProjects(transactionsRaw, excludeProjects);
+    const transactions = filterExcluded(transactionsRaw, excludeTagIds);
 
     const primaryCurrency = user?.primaryCurrency || '₸';
     const hasMixedCurrencies =
@@ -92,7 +94,7 @@ class AnalyticsService {
     };
   }
 
-  async getByCategory(userId: string, dateFrom?: Date, dateTo?: Date, excludeProjects = false) {
+  async getByCategory(userId: string, dateFrom?: Date, dateTo?: Date, excludeTagIds: string[] = []) {
     const where: any = { userId, isDeleted: false };
 
     if (dateFrom || dateTo) {
@@ -113,7 +115,7 @@ class AnalyticsService {
       }),
     ]);
 
-    const transactions = filterProjects(transactionsRaw, excludeProjects);
+    const transactions = filterExcluded(transactionsRaw, excludeTagIds);
 
     const primaryCurrency = user?.primaryCurrency || '₸';
     const hasMixedCurrencies = transactions.some(
@@ -175,7 +177,7 @@ class AnalyticsService {
     dateFrom: Date,
     dateTo: Date,
     groupBy: 'day' | 'week' | 'month' = 'day',
-    excludeProjects = false
+    excludeTagIds: string[] = []
   ) {
     const [user, transactionsRaw] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { primaryCurrency: true } }),
@@ -198,7 +200,7 @@ class AnalyticsService {
       }),
     ]);
 
-    const transactions = filterProjects(transactionsRaw, excludeProjects);
+    const transactions = filterExcluded(transactionsRaw, excludeTagIds);
 
     const primaryCurrency = user?.primaryCurrency || '₸';
     const hasMixedCurrencies = transactions.some(
@@ -279,7 +281,7 @@ class AnalyticsService {
     );
   }
 
-  async getTopExpenses(userId: string, dateFrom?: Date, dateTo?: Date, limit = 10, excludeProjects = false) {
+  async getTopExpenses(userId: string, dateFrom?: Date, dateTo?: Date, limit = 10, excludeTagIds: string[] = []) {
     const where: any = {
       userId,
       type: 'expense',
@@ -303,15 +305,16 @@ class AnalyticsService {
         amount: 'desc',
       },
       // берём с запасом, чтобы после фильтрации проектных остался нужный limit
-      take: excludeProjects ? limit * 3 + 10 : limit,
+      take: excludeTagIds.length > 0 ? limit * 3 + 10 : limit,
     });
 
-    const filtered = filterProjects(expenses, excludeProjects);
+    const filtered = filterExcluded(expenses, excludeTagIds);
     return filtered.slice(0, limit);
   }
 
-  // Разбивка расходов по проектным тегам — сколько всего ушло на каждый "проект" (напр. сборку сервера)
-  async getProjectsBreakdown(userId: string, dateFrom?: Date, dateTo?: Date) {
+  // Разбивка расходов по тегам — сколько ушло на каждый тег.
+  // wantProject=true — только проектные теги (напр. сборка сервера), false — только обычные (напр. "Гардероб")
+  async getTagsBreakdown(userId: string, dateFrom: Date | undefined, dateTo: Date | undefined, wantProject: boolean) {
     const where: any = {
       userId,
       type: 'expense',
@@ -347,25 +350,33 @@ class AnalyticsService {
       }
     }
 
-    const projectMap = new Map<string, { tagId: string; name: string; color: string; total: number; count: number }>();
+    const tagMap = new Map<string, { tagId: string; name: string; color: string; total: number; count: number }>();
 
     transactions.forEach((t) => {
-      const projectTags = t.tags.filter((tt) => tt.tag.isProject);
-      if (projectTags.length === 0) return;
+      const matchingTags = t.tags.filter((tt) => tt.tag.isProject === wantProject);
+      if (matchingTags.length === 0) return;
 
       const amount = convertAmount(Number(t.amount), t.currency || primaryCurrency, primaryCurrency, rates);
 
-      projectTags.forEach((tt) => {
-        if (!projectMap.has(tt.tag.id)) {
-          projectMap.set(tt.tag.id, { tagId: tt.tag.id, name: tt.tag.name, color: tt.tag.color, total: 0, count: 0 });
+      matchingTags.forEach((tt) => {
+        if (!tagMap.has(tt.tag.id)) {
+          tagMap.set(tt.tag.id, { tagId: tt.tag.id, name: tt.tag.name, color: tt.tag.color, total: 0, count: 0 });
         }
-        const entry = projectMap.get(tt.tag.id)!;
+        const entry = tagMap.get(tt.tag.id)!;
         entry.total += amount;
         entry.count += 1;
       });
     });
 
-    return Array.from(projectMap.values()).sort((a, b) => b.total - a.total);
+    return Array.from(tagMap.values()).sort((a, b) => b.total - a.total);
+  }
+
+  async getProjectsBreakdown(userId: string, dateFrom?: Date, dateTo?: Date) {
+    return this.getTagsBreakdown(userId, dateFrom, dateTo, true);
+  }
+
+  async getRegularTagsBreakdown(userId: string, dateFrom?: Date, dateTo?: Date) {
+    return this.getTagsBreakdown(userId, dateFrom, dateTo, false);
   }
 
   async getExpensiveDays(userId: string, dateFrom?: Date, dateTo?: Date, limit = 5) {
