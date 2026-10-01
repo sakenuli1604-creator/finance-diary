@@ -66,6 +66,9 @@ export const ImportTransactions: React.FC = () => {
   const [isParsingPdf, setIsParsingPdf] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
 
+  const [previewRows, setPreviewRows] = useState<ImportRow[]>([]);
+  const [skippedCount, setSkippedCount] = useState(0);
+
   useEffect(() => {
     fetchAccounts();
     fetchCategories();
@@ -208,17 +211,25 @@ export const ImportTransactions: React.FC = () => {
     return { rows: parsed, skipped };
   };
 
-  const preview = step === 'preview' ? buildPreview() : { rows: [], skipped: 0 };
+  const goToPreview = () => {
+    const { rows, skipped } = buildPreview();
+    setPreviewRows(rows);
+    setSkippedCount(skipped);
+    setStep('preview');
+  };
+
+  const updateRowCategory = (index: number, categoryId: string) => {
+    setPreviewRows((rows) => rows.map((r, i) => (i === index ? { ...r, categoryId } : r)));
+  };
 
   const handleImport = async () => {
-    const { rows } = buildPreview();
-    if (rows.length === 0) {
+    if (previewRows.length === 0) {
       setError('Нет ни одной строки, которую можно импортировать');
       return;
     }
     try {
       setIsProcessing(true);
-      const result = await transactionsAPI.bulkImport(accountId, rows);
+      const result = await transactionsAPI.bulkImport(accountId, previewRows);
       setImportedCount(result.imported);
       setStep('done');
     } catch (err: any) {
@@ -481,11 +492,11 @@ export const ImportTransactions: React.FC = () => {
               </div>
             </div>
             <p className="text-xs text-secondary">
-              Все импортированные операции сначала попадут в эту категорию — потом можно
-              перекатегоризировать вручную по одной.
+              Это категория по умолчанию — на следующем шаге, перед самим импортом,
+              можно будет поправить её у каждой операции отдельно.
             </p>
 
-            <Button fullWidth disabled={!canProceedToPreview} onClick={() => setStep('preview')}>
+            <Button fullWidth disabled={!canProceedToPreview} onClick={goToPreview}>
               Далее — превью
             </Button>
           </Card>
@@ -497,37 +508,54 @@ export const ImportTransactions: React.FC = () => {
 
             <div className="flex gap-4 text-sm">
               <span className="text-income font-medium">
-                Будет добавлено: {preview.rows.length}
+                Будет добавлено: {previewRows.length}
               </span>
-              {preview.skipped > 0 && (
+              {skippedCount > 0 && (
                 <span className="text-expense font-medium">
-                  Пропущено (не удалось разобрать): {preview.skipped}
+                  Пропущено (не удалось разобрать): {skippedCount}
                 </span>
               )}
             </div>
 
+            <p className="text-xs text-secondary">
+              Категорию каждой операции можно сразу поправить тут — не придётся
+              перекатегоризировать вручную после импорта.
+            </p>
+
             <div className="border border-line rounded-lg overflow-hidden">
-              <div className="max-h-80 overflow-y-auto divide-y divide-line">
-                {preview.rows.slice(0, 15).map((row, i) => (
-                  <div key={i} className="flex items-center justify-between px-3 py-2 text-sm">
-                    <div className="min-w-0">
-                      <p className="text-primary truncate">{row.title || '—'}</p>
-                      <p className="text-secondary text-xs">
-                        {new Date(row.date).toLocaleDateString('ru-RU')}
-                      </p>
+              <div className="max-h-[32rem] overflow-y-auto divide-y divide-line">
+                {previewRows.map((row, i) => (
+                  <div key={i} className="px-3 py-2.5 text-sm space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-primary truncate">{row.title || '—'}</p>
+                        <p className="text-secondary text-xs">
+                          {new Date(row.date).toLocaleDateString('ru-RU')}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 ${row.type === 'income' ? 'text-income' : 'text-expense'}`}
+                      >
+                        {row.type === 'income' ? '+' : '-'}
+                        {row.amount.toLocaleString('ru-RU')}
+                      </span>
                     </div>
-                    <span className={row.type === 'income' ? 'text-income' : 'text-expense'}>
-                      {row.type === 'income' ? '+' : '-'}
-                      {row.amount.toLocaleString('ru-RU')}
-                    </span>
+                    <select
+                      value={row.categoryId}
+                      onChange={(e) => updateRowCategory(i, e.target.value)}
+                      className="w-full px-2 py-1.5 text-xs border border-line rounded-md bg-surface text-primary outline-none"
+                    >
+                      {categories
+                        .filter((c) => c.type === row.type)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.icon} {c.name}
+                          </option>
+                        ))}
+                    </select>
                   </div>
                 ))}
               </div>
-              {preview.rows.length > 15 && (
-                <p className="text-xs text-secondary text-center py-2 bg-muted">
-                  ...и ещё {preview.rows.length - 15}
-                </p>
-              )}
             </div>
 
             <div className="flex gap-3">
@@ -535,7 +563,7 @@ export const ImportTransactions: React.FC = () => {
                 Назад
               </Button>
               <Button fullWidth isLoading={isProcessing} onClick={handleImport}>
-                Импортировать {preview.rows.length}
+                Импортировать {previewRows.length}
               </Button>
             </div>
           </Card>
