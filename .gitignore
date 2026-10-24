@@ -35,9 +35,5 @@ Thumbs.db
 *.swo
 *~
 
-# Prisma
-prisma/migrations/*
-!prisma/migrations/.gitkeep
-
 # Uploads
 uploads/

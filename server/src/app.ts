@@ -20,6 +20,9 @@ dotenv.config();
 
 const app = express();
 
+// За прокси Railway: берём реальный IP клиента из X-Forwarded-For (нужно для rate limit на логине)
+app.set('trust proxy', 1);
+
 // Middlewares
 app.use(helmet());
 app.use(cors());
