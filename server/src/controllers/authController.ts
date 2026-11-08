@@ -35,6 +35,53 @@ class AuthController {
     }
   }
 
+  async forgotPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email } = req.body;
+
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+
+      // Отвечаем сразу и одинаково, независимо от того, есть ли такой аккаунт; письмо уходит в фоне
+      authService.requestPasswordReset(email).catch((err) => {
+        console.error('[forgot-password] не удалось отправить письмо:', err);
+      });
+
+      res.json({ message: 'If an account with this email exists, a reset link has been sent' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async resetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, password } = req.body;
+
+      if (!token || typeof token !== 'string' || !password || typeof password !== 'string') {
+        return res.status(400).json({ message: 'Token and password are required' });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ message: 'Пароль должен быть минимум 6 символов' });
+      }
+
+      try {
+        await authService.resetPassword(token, password);
+      } catch (err: any) {
+        if (err.message === 'Invalid or expired token') {
+          // 400, а не 401: на 401 клиент делает автоматический редирект на /login
+          return res.status(400).json({ message: 'Ссылка недействительна или устарела. Запросите новую.' });
+        }
+        throw err;
+      }
+
+      res.json({ message: 'Password updated' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getMe(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;

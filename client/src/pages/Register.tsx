@@ -119,6 +119,11 @@ export const Register: React.FC = () => {
                 Войти
               </Link>
             </p>
+            <p className="mt-2">
+              <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700">
+                Забыли пароль?
+              </Link>
+            </p>
           </div>
         </div>
       </div>

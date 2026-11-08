@@ -322,14 +322,15 @@ class TransactionService {
       else expenseTotal += row.amount;
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      let createdCount = 0;
+    const validRows = rows.filter((r) => r.amount && r.amount > 0);
 
-      for (const row of rows) {
-        if (!row.amount || row.amount <= 0) continue;
-
-        await tx.transaction.create({
-          data: {
+    // Одним запросом (createMany), а не по одной строке в цикле: цикл из сотен create
+    // не укладывался в дефолтные 5 сек интерактивной транзакции Prisma и падал с
+    // "Transaction not found" на больших выписках. timeout — страховка на случай медленной БД.
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const created = await tx.transaction.createMany({
+          data: validRows.map((row) => ({
             userId,
             accountId,
             categoryId: row.categoryId,
@@ -338,22 +339,22 @@ class TransactionService {
             currency: account.currency,
             title: row.title,
             transactionDate: new Date(row.date),
+          })),
+        });
+
+        await tx.account.update({
+          where: { id: accountId },
+          data: {
+            balance: {
+              increment: incomeTotal - expenseTotal,
+            },
           },
         });
-        createdCount++;
-      }
 
-      await tx.account.update({
-        where: { id: accountId },
-        data: {
-          balance: {
-            increment: incomeTotal - expenseTotal,
-          },
-        },
-      });
-
-      return { imported: createdCount };
-    });
+        return { imported: created.count };
+      },
+      { maxWait: 10000, timeout: 30000 }
+    );
 
     return result;
   }

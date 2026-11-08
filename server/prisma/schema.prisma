@@ -23,6 +23,7 @@ model User {
   transfers    Transfer[]
   tags         Tag[]
   budgets      Budget[]
+  passwordResets PasswordResetToken[]
 }
 
 model Account {
@@ -193,4 +194,18 @@ model Budget {
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([userId, isActive])
+}
+
+// Одноразовые токены сброса пароля. В базе хранится только SHA-256 хеш токена — сам токен есть только в письме.
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

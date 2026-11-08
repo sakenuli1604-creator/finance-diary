@@ -1,6 +1,13 @@
 import { prisma } from '../lib/prisma';
 import bcrypt from 'bcryptjs';
 import { generateToken } from '../utils/jwt';
+import crypto from 'crypto';
+import { sendMail } from '../utils/mailer';
+
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // ссылка живёт 1 час
+
+const hashResetToken = (token: string) =>
+  crypto.createHash('sha256').update(token).digest('hex');
 
 
 export interface RegisterDTO {
@@ -83,6 +90,71 @@ class AuthService {
       },
       token,
     };
+  }
+
+  // Всегда завершается без ошибки для несуществующего email — снаружи не должно быть видно, есть ли такой аккаунт
+  async requestPasswordReset(email: string) {
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: email.trim(), mode: 'insensitive' } },
+    });
+    if (!user) return;
+
+    const appUrl = (process.env.APP_URL || '').replace(/\/$/, '');
+    if (!appUrl) {
+      throw new Error('APP_URL is not set (адрес фронтенда для ссылки в письме)');
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+
+    // старые неиспользованные ссылки этого пользователя аннулируем — действует только последняя
+    await prisma.$transaction([
+      prisma.passwordResetToken.deleteMany({ where: { userId: user.id } }),
+      prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashResetToken(token),
+          expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+        },
+      }),
+    ]);
+
+    const link = `${appUrl}/reset-password?token=${token}`;
+
+    await sendMail({
+      to: user.email,
+      subject: 'Сброс пароля — Финансовый дневник',
+      text:
+        `Здравствуйте, ${user.name}!\n\n` +
+        `Чтобы задать новый пароль, откройте ссылку (действует 1 час):\n${link}\n\n` +
+        `Если вы не запрашивали сброс — просто проигнорируйте это письмо, пароль не изменится.`,
+      html:
+        `<p>Здравствуйте, ${user.name.replace(/[<>&"]/g, '')}!</p>` +
+        `<p>Чтобы задать новый пароль, нажмите на кнопку (ссылка действует 1 час):</p>` +
+        `<p><a href="${link}" style="display:inline-block;padding:12px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none">Сбросить пароль</a></p>` +
+        `<p style="color:#666;font-size:13px">Или скопируйте ссылку в браузер:<br>${link}</p>` +
+        `<p style="color:#666;font-size:13px">Если вы не запрашивали сброс — просто проигнорируйте это письмо, пароль не изменится.</p>`,
+    });
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const record = await prisma.passwordResetToken.findUnique({
+      where: { tokenHash: hashResetToken(token) },
+    });
+
+    if (!record || record.usedAt || record.expiresAt < new Date()) {
+      throw new Error('Invalid or expired token');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: record.userId },
+        data: { password: hashedPassword },
+      }),
+      // ссылка одноразовая; заодно чистим все остальные токены пользователя
+      prisma.passwordResetToken.deleteMany({ where: { userId: record.userId } }),
+    ]);
   }
 
   async getMe(userId: string) {

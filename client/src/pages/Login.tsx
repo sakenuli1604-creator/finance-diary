@@ -61,6 +61,12 @@ export const Login: React.FC = () => {
               required
             />
 
+            <div className="text-right -mt-2">
+              <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700">
+                Забыли пароль?
+              </Link>
+            </div>
+
             {error && (
               <div className="bg-expense/10 text-expense px-4 py-3 rounded-lg text-sm">
                 {error}

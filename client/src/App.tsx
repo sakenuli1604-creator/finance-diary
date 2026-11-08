@@ -2,6 +2,8 @@ import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { Dashboard } from './pages/Dashboard';
 import { Accounts } from './pages/Accounts';
 import { AccountDetail } from './pages/AccountDetail';
@@ -32,13 +34,15 @@ function AppContent() {
   const location = useLocation();
 
   // Скрываем навигацию на страницах входа/регистрации
-  const hideNav = ['/login', '/register'].includes(location.pathname);
+  const hideNav = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
 
   return (
     <>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route
           path="/"
