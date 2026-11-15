@@ -9,12 +9,25 @@ import { useTransactionsStore } from '../../store/transactionsStore';
 interface TransactionItemProps {
   transaction: Transaction;
   onClick?: () => void;
+  // Когда операции сгруппированы по дням, дата уже есть в заголовке группы — показываем только время
+  showDate?: boolean;
+  // Режим выбора: свайпы отключены, тап — выбрать/снять, слева чекбокс
+  selectMode?: boolean;
+  selected?: boolean;
+  onLongPress?: () => void;
 }
 
 const SWIPE_THRESHOLD = 72; // px, после которого срабатывает действие
 const MAX_SWIPE = 96;
 
-export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, onClick }) => {
+export const TransactionItem: React.FC<TransactionItemProps> = ({
+  transaction,
+  onClick,
+  showDate = true,
+  selectMode = false,
+  selected = false,
+  onLongPress,
+}) => {
   const navigate = useNavigate();
   const { deleteTransaction } = useTransactionsStore();
 
@@ -23,34 +36,65 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, o
   const startX = useRef(0);
   const pointerId = useRef<number | null>(null);
   const moved = useRef(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFired = useRef(false);
+
+  const clearLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
 
   const formatAmount = (amount: number) => new Intl.NumberFormat('ru-RU').format(amount);
 
   const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    showDate
+      ? new Date(date).toLocaleDateString('ru-RU', {
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : new Date(date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    longPressFired.current = false;
+    if (selectMode) return;
     startX.current = e.clientX;
     pointerId.current = e.pointerId;
     moved.current = false;
     setIsDragging(true);
+
+    // долгое нажатие включает режим выбора
+    clearLongPress();
+    if (onLongPress) {
+      longPressTimer.current = setTimeout(() => {
+        if (!moved.current) {
+          longPressFired.current = true;
+          pointerId.current = null;
+          setIsDragging(false);
+          setDragX(0);
+          onLongPress();
+        }
+      }, 500);
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (pointerId.current !== e.pointerId) return;
+    if (selectMode || pointerId.current !== e.pointerId) return;
     const delta = e.clientX - startX.current;
-    if (Math.abs(delta) > 5) moved.current = true;
+    if (Math.abs(delta) > 5) {
+      moved.current = true;
+      clearLongPress();
+    }
     const clamped = Math.max(-MAX_SWIPE, Math.min(MAX_SWIPE, delta));
     setDragX(clamped);
   };
 
   const handlePointerUp = async (e: React.PointerEvent) => {
-    if (pointerId.current !== e.pointerId) return;
+    clearLongPress();
+    if (selectMode || pointerId.current !== e.pointerId) return;
     pointerId.current = null;
     setIsDragging(false);
 
@@ -77,6 +121,11 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, o
   };
 
   const handleClick = () => {
+    // клик после долгого нажатия (оно уже включило режим выбора) игнорируем
+    if (longPressFired.current) {
+      longPressFired.current = false;
+      return;
+    }
     // клик после свайпа не должен открывать детали операции
     if (moved.current) {
       moved.current = false;
@@ -121,9 +170,21 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, o
           touchAction: 'pan-y',
         }}
       >
-        <Card onClick={handleClick} className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <Card
+          onClick={handleClick}
+          className={`p-3.5 transition-colors ${selected ? 'ring-2 ring-blue-500' : ''}`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              {selectMode && (
+                <input
+                  type="checkbox"
+                  checked={selected}
+                  readOnly
+                  className="w-5 h-5 shrink-0 pointer-events-none"
+                  aria-label="Выбрать операцию"
+                />
+              )}
               {/* Category Icon */}
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0"
@@ -133,9 +194,9 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, o
               </div>
 
               {/* Info */}
-              <div>
+              <div className="min-w-0">
                 <h3 className="font-medium text-primary flex items-center gap-1.5">
-                  {transaction.title || transaction.category?.name}
+                  <span className="truncate">{transaction.title || transaction.category?.name}</span>
                   {transaction.splitGroupId && (
                     <span
                       className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-secondary font-normal"
@@ -145,7 +206,10 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, o
                     </span>
                   )}
                 </h3>
-                <p className="text-sm text-secondary">
+                <p className="text-sm text-secondary truncate">
+                  {transaction.title && transaction.category?.name
+                    ? `${transaction.category.name} • `
+                    : ''}
                   {formatDate(transaction.transactionDate)}
                   {transaction.shop && ` • ${transaction.shop}`}
                 </p>

@@ -7,15 +7,53 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 
-const CATEGORY_ICONS = [
-  '🍔', '🚕', '🛍️', '📦', '💸', '🎮', '🚌', '🏠', '💊', '📚',
-  '💻', '📱', '⌚', '👕', '✈️', '🎬', '☕', '🍕', '🎓', '💼',
-  '🎁', '💰', '💵', '📌', '🔧', '⚽', '🎵', '📸', '🚗', '🏋️',
+// Иконки по группам — внутри выбора группы подписаны, чтобы быстрее найти нужную
+const ICON_GROUPS: { title: string; icons: string[] }[] = [
+  {
+    title: 'Еда и напитки',
+    icons: ['🍔', '🍕', '🍟', '🌭', '🥪', '🌮', '🍜', '🍣', '🍱', '🥗', '🍝', '🍳', '🥐', '🍞', '🧀', '🍰', '🍩', '🍫', '🍦', '☕', '🍵', '🧋', '🥤', '🍺', '🍷', '🛒', '🥩', '🍎', '🥕', '🍽️'],
+  },
+  {
+    title: 'Транспорт',
+    icons: ['🚕', '🚌', '🚗', '🚙', '🚇', '🚆', '✈️', '🚲', '🛴', '🏍️', '⛽', '🅿️', '🚢', '🛵', '🚖', '🚐', '🛣️', '🧳'],
+  },
+  {
+    title: 'Дом и быт',
+    icons: ['🏠', '🛋️', '🛏️', '💡', '🚿', '🧹', '🧺', '🔧', '🔨', '🪴', '🧴', '🪥', '📶', '🔌', '🗝️', '🐶', '🐱', '🧸'],
+  },
+  {
+    title: 'Покупки и одежда',
+    icons: ['🛍️', '👕', '👖', '👗', '👟', '👜', '🧥', '🧢', '👓', '💍', '⌚', '💄', '🎒', '📦', '🏷️', '🧦'],
+  },
+  {
+    title: 'Техника и интернет',
+    icons: ['💻', '📱', '🖥️', '⌨️', '🖱️', '🎧', '📷', '📸', '🔋', '💾', '🖨️', '📡', '🕹️', '☁️', '🌐', '🤖'],
+  },
+  {
+    title: 'Развлечения и хобби',
+    icons: ['🎮', '🎬', '🎵', '🎸', '🎨', '🎭', '🎤', '📖', '🎲', '🧩', '⚽', '🏀', '🏋️', '🏊', '🎣', '⛺', '🎉', '🎟️'],
+  },
+  {
+    title: 'Здоровье и учёба',
+    icons: ['💊', '🩺', '🦷', '🏥', '🧘', '💆', '💇', '📚', '🎓', '✏️', '📝', '🏫', '🧪', '🔬'],
+  },
+  {
+    title: 'Деньги и работа',
+    icons: ['💰', '💵', '💸', '💳', '🏦', '📈', '📉', '💼', '🧾', '🤝', '🎁', '🪙', '🏆', '📌', '❤️', '⭐'],
+  },
 ];
 
 const CATEGORY_COLORS = [
-  '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6',
-  '#EC4899', '#6366F1', '#14B8A6', '#F97316', '#84CC16',
+  // насыщенные
+  '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16', '#22C55E',
+  '#10B981', '#14B8A6', '#06B6D4', '#0EA5E9', '#3B82F6', '#6366F1',
+  '#8B5CF6', '#A855F7', '#D946EF', '#EC4899', '#F43F5E', '#78716C',
+  // мягкие
+  '#FCA5A5', '#FDBA74', '#FCD34D', '#BEF264', '#86EFAC', '#5EEAD4',
+  '#7DD3FC', '#A5B4FC', '#C4B5FD', '#F0ABFC', '#F9A8D4', '#D6D3D1',
+  // тёмные
+  '#991B1B', '#9A3412', '#854D0E', '#3F6212', '#166534', '#115E59',
+  '#155E75', '#1E40AF', '#3730A3', '#6B21A8', '#9D174D', '#1F2937',
 ];
 
 export const Categories: React.FC = () => {
@@ -267,20 +305,42 @@ export const Categories: React.FC = () => {
             <label className="block text-sm font-medium text-secondary mb-2">
               Иконка
             </label>
-            <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto">
-              {CATEGORY_ICONS.map((icon) => (
-                <button
-                  key={icon}
-                  type="button"
-                  className={`p-2 text-2xl rounded-lg border-2 transition-all ${
-                    formData.icon === icon
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-line hover:border-line'
-                  }`}
-                  onClick={() => setFormData({ ...formData, icon })}
-                >
-                  {icon}
-                </button>
+            <div className="flex items-center gap-2 mb-2">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0"
+                style={{ backgroundColor: formData.color || '#E5E7EB' }}
+              >
+                {formData.icon || '📌'}
+              </div>
+              <input
+                type="text"
+                value={formData.icon}
+                onChange={(e) => setFormData({ ...formData, icon: e.target.value.slice(0, 4) })}
+                placeholder="или вставьте свой эмодзи"
+                className="flex-1 px-3 py-2 text-sm border border-line rounded-lg bg-surface text-primary outline-none"
+              />
+            </div>
+            <div className="max-h-56 overflow-y-auto space-y-3 pr-1">
+              {ICON_GROUPS.map((group) => (
+                <div key={group.title}>
+                  <p className="text-xs text-secondary mb-1">{group.title}</p>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {group.icons.map((icon) => (
+                      <button
+                        key={icon}
+                        type="button"
+                        className={`p-1.5 text-2xl rounded-lg border-2 transition-all ${
+                          formData.icon === icon
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-line hover:border-line'
+                        }`}
+                        onClick={() => setFormData({ ...formData, icon })}
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -289,12 +349,12 @@ export const Categories: React.FC = () => {
             <label className="block text-sm font-medium text-secondary mb-2">
               Цвет
             </label>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-6 gap-2">
               {CATEGORY_COLORS.map((color) => (
                 <button
                   key={color}
                   type="button"
-                  className={`h-12 rounded-lg border-2 transition-all ${
+                  className={`h-9 rounded-lg border-2 transition-all ${
                     formData.color === color
                       ? 'border-primary scale-110'
                       : 'border-transparent'
@@ -304,6 +364,15 @@ export const Categories: React.FC = () => {
                 />
               ))}
             </div>
+            <label className="flex items-center gap-3 mt-3 text-sm text-secondary">
+              Свой цвет
+              <input
+                type="color"
+                value={/^#[0-9a-fA-F]{6}$/.test(formData.color || '') ? formData.color : '#3B82F6'}
+                onChange={(e) => setFormData({ ...formData, color: e.target.value.toUpperCase() })}
+                className="w-12 h-9 p-0 border border-line rounded-lg bg-transparent cursor-pointer"
+              />
+            </label>
           </div>
 
           <Button type="submit" fullWidth>

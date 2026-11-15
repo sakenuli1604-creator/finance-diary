@@ -68,6 +68,8 @@ export const ImportTransactions: React.FC = () => {
 
   const [previewRows, setPreviewRows] = useState<ImportRow[]>([]);
   const [skippedCount, setSkippedCount] = useState(0);
+  // индексы строк превью, которые пользователь исключил из импорта (строки не удаляем — отсев обратим)
+  const [excluded, setExcluded] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchAccounts();
@@ -215,6 +217,7 @@ export const ImportTransactions: React.FC = () => {
     const { rows, skipped } = buildPreview();
     setPreviewRows(rows);
     setSkippedCount(skipped);
+    setExcluded(new Set());
     setStep('preview');
   };
 
@@ -222,14 +225,42 @@ export const ImportTransactions: React.FC = () => {
     setPreviewRows((rows) => rows.map((r, i) => (i === index ? { ...r, categoryId } : r)));
   };
 
+  const toggleExcluded = (index: number) => {
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  const includeAll = () => setExcluded(new Set());
+  const excludeAll = () => setExcluded(new Set(previewRows.map((_, i) => i)));
+  const excludeByType = (type: 'income' | 'expense') =>
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      previewRows.forEach((r, i) => {
+        if (r.type === type) next.add(i);
+      });
+      return next;
+    });
+
+  const includedRows = previewRows.filter((_, i) => !excluded.has(i));
+  const includedIncome = includedRows
+    .filter((r) => r.type === 'income')
+    .reduce((sum, r) => sum + r.amount, 0);
+  const includedExpense = includedRows
+    .filter((r) => r.type === 'expense')
+    .reduce((sum, r) => sum + r.amount, 0);
+
   const handleImport = async () => {
-    if (previewRows.length === 0) {
+    if (includedRows.length === 0) {
       setError('Нет ни одной строки, которую можно импортировать');
       return;
     }
     try {
       setIsProcessing(true);
-      const result = await transactionsAPI.bulkImport(accountId, previewRows);
+      const result = await transactionsAPI.bulkImport(accountId, includedRows);
       setImportedCount(result.imported);
       setStep('done');
     } catch (err: any) {
@@ -506,9 +537,9 @@ export const ImportTransactions: React.FC = () => {
           <Card className="p-6 space-y-4">
             <h2 className="font-semibold text-primary">Проверь перед импортом</h2>
 
-            <div className="flex gap-4 text-sm">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               <span className="text-income font-medium">
-                Будет добавлено: {previewRows.length}
+                Будет добавлено: {includedRows.length} из {previewRows.length}
               </span>
               {skippedCount > 0 && (
                 <span className="text-expense font-medium">
@@ -518,16 +549,72 @@ export const ImportTransactions: React.FC = () => {
             </div>
 
             <p className="text-xs text-secondary">
-              Категорию каждой операции можно сразу поправить тут — не придётся
-              перекатегоризировать вручную после импорта.
+              Категорию каждой операции можно сразу поправить тут. Снимите галочку у
+              ненужных операций — они не попадут в импорт (потом удалять вручную не придётся).
             </p>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={includeAll}
+                className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-secondary hover:text-primary"
+              >
+                Выбрать все
+              </button>
+              <button
+                type="button"
+                onClick={excludeAll}
+                className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-secondary hover:text-primary"
+              >
+                Снять все
+              </button>
+              <button
+                type="button"
+                onClick={() => excludeByType('income')}
+                className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-secondary hover:text-primary"
+              >
+                Убрать все доходы
+              </button>
+              <button
+                type="button"
+                onClick={() => excludeByType('expense')}
+                className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-secondary hover:text-primary"
+              >
+                Убрать все расходы
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-x-4 text-sm text-secondary">
+              <span>
+                Расходы:{' '}
+                <span className="text-expense font-medium">
+                  -{includedExpense.toLocaleString('ru-RU')}
+                </span>
+              </span>
+              <span>
+                Доходы:{' '}
+                <span className="text-income font-medium">
+                  +{includedIncome.toLocaleString('ru-RU')}
+                </span>
+              </span>
+            </div>
 
             <div className="border border-line rounded-lg overflow-hidden">
               <div className="max-h-[32rem] overflow-y-auto divide-y divide-line">
                 {previewRows.map((row, i) => (
-                  <div key={i} className="px-3 py-2.5 text-sm space-y-1.5">
+                  <div
+                    key={i}
+                    className={`px-3 py-2.5 text-sm space-y-1.5 ${excluded.has(i) ? 'opacity-40' : ''}`}
+                  >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={!excluded.has(i)}
+                        onChange={() => toggleExcluded(i)}
+                        className="w-4 h-4 shrink-0"
+                        aria-label="Включить в импорт"
+                      />
+                      <div className="min-w-0 flex-1">
                         <p className="text-primary truncate">{row.title || '—'}</p>
                         <p className="text-secondary text-xs">
                           {new Date(row.date).toLocaleDateString('ru-RU')}
@@ -543,6 +630,7 @@ export const ImportTransactions: React.FC = () => {
                     <select
                       value={row.categoryId}
                       onChange={(e) => updateRowCategory(i, e.target.value)}
+                      disabled={excluded.has(i)}
                       className="w-full px-2 py-1.5 text-xs border border-line rounded-md bg-surface text-primary outline-none"
                     >
                       {categories
@@ -563,7 +651,7 @@ export const ImportTransactions: React.FC = () => {
                 Назад
               </Button>
               <Button fullWidth isLoading={isProcessing} onClick={handleImport}>
-                Импортировать {previewRows.length}
+                Импортировать {includedRows.length}
               </Button>
             </div>
           </Card>
