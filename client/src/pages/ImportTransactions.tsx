@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import Papa from 'papaparse';
@@ -70,6 +70,16 @@ export const ImportTransactions: React.FC = () => {
   const [skippedCount, setSkippedCount] = useState(0);
   // индексы строк превью, которые пользователь исключил из импорта (строки не удаляем — отсев обратим)
   const [excluded, setExcluded] = useState<Set<number>>(new Set());
+  // результаты проверки перед импортом: возможные дубли и категории, подобранные по истории
+  const [dupIdx, setDupIdx] = useState<Set<number>>(new Set());
+  const [autoIdx, setAutoIdx] = useState<Set<number>>(new Set());
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [applyPrompt, setApplyPrompt] = useState<{
+    title: string;
+    categoryId: string;
+    indexes: number[];
+  } | null>(null);
+  const analyzeToken = useRef(0);
 
   useEffect(() => {
     fetchAccounts();
@@ -213,16 +223,92 @@ export const ImportTransactions: React.FC = () => {
     return { rows: parsed, skipped };
   };
 
+  const normalizeTitle = (t?: string) => (t || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
   const goToPreview = () => {
     const { rows, skipped } = buildPreview();
     setPreviewRows(rows);
     setSkippedCount(skipped);
     setExcluded(new Set());
+    setDupIdx(new Set());
+    setAutoIdx(new Set());
+    setApplyPrompt(null);
     setStep('preview');
+
+    // Превью показываем сразу, а дубли и подсказки категорий подтягиваем следом.
+    // Если проверка не удалась — импорт работает как раньше.
+    const token = ++analyzeToken.current;
+    setIsAnalyzing(true);
+    transactionsAPI
+      .analyzeImport(accountId, rows)
+      .then(({ duplicates, suggestions }) => {
+        if (token !== analyzeToken.current) return;
+
+        const dups = new Set<number>();
+        const autos = new Set<number>();
+        duplicates.forEach((isDup, i) => isDup && dups.add(i));
+
+        setPreviewRows((current) =>
+          current.map((row, i) => {
+            const suggested = suggestions[i];
+            const category = suggested ? categories.find((c) => c.id === suggested) : null;
+            // подставляем только если категория подходит по типу и пользователь её ещё не менял
+            if (category && category.type === row.type && row.categoryId === rows[i]?.categoryId) {
+              if (category.id !== row.categoryId) autos.add(i);
+              return { ...row, categoryId: category.id };
+            }
+            return row;
+          })
+        );
+        setAutoIdx(autos);
+        setDupIdx(dups);
+        // возможные дубли снимаем с импорта, но их можно вернуть галочкой
+        setExcluded((prev) => new Set([...Array.from(prev), ...Array.from(dups)]));
+      })
+      .catch((err) => console.error('Import analysis failed:', err))
+      .finally(() => {
+        if (token === analyzeToken.current) setIsAnalyzing(false);
+      });
   };
 
   const updateRowCategory = (index: number, categoryId: string) => {
     setPreviewRows((rows) => rows.map((r, i) => (i === index ? { ...r, categoryId } : r)));
+    setAutoIdx((prev) => {
+      const next = new Set(prev);
+      next.delete(index);
+      return next;
+    });
+
+    // Другие операции с таким же названием — предлагаем поставить им ту же категорию одним нажатием
+    const changed = previewRows[index];
+    const key = normalizeTitle(changed?.title);
+    if (!key) {
+      setApplyPrompt(null);
+      return;
+    }
+    const similar = previewRows
+      .map((r, i) => ({ r, i }))
+      .filter(
+        ({ r, i }) =>
+          i !== index &&
+          r.type === changed.type &&
+          normalizeTitle(r.title) === key &&
+          r.categoryId !== categoryId
+      )
+      .map(({ i }) => i);
+    setApplyPrompt(
+      similar.length > 0 ? { title: changed.title || '', categoryId, indexes: similar } : null
+    );
+  };
+
+  const applyCategoryToSimilar = () => {
+    if (!applyPrompt) return;
+    const targets = new Set(applyPrompt.indexes);
+    setPreviewRows((rows) =>
+      rows.map((r, i) => (targets.has(i) ? { ...r, categoryId: applyPrompt.categoryId } : r))
+    );
+    setAutoIdx((prev) => new Set(Array.from(prev).filter((i) => !targets.has(i))));
+    setApplyPrompt(null);
   };
 
   const toggleExcluded = (index: number) => {
@@ -548,6 +634,38 @@ export const ImportTransactions: React.FC = () => {
               )}
             </div>
 
+            {isAnalyzing && (
+              <p className="text-xs text-secondary animate-pulse">
+                Проверяем, нет ли таких операций в дневнике, и подбираем категории по истории…
+              </p>
+            )}
+            {!isAnalyzing && dupIdx.size > 0 && (
+              <div className="text-xs bg-amber-500/10 text-amber-700 rounded-lg px-3 py-2">
+                Похожи на уже добавленные: {dupIdx.size} (та же сумма, тип и день) — они сняты с импорта.
+                Если это не дубли, верните галочку.
+              </div>
+            )}
+            {!isAnalyzing && autoIdx.size > 0 && (
+              <p className="text-xs text-secondary">
+                Категории подобраны по вашей истории: {autoIdx.size}. Помечены «авто» — их можно поменять.
+              </p>
+            )}
+            {applyPrompt && (
+              <div className="text-xs bg-blue-500/10 text-blue-700 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
+                <span>
+                  Ещё {applyPrompt.indexes.length} с названием «{applyPrompt.title}». Поставить им ту же категорию?
+                </span>
+                <span className="flex gap-3 shrink-0">
+                  <button type="button" className="font-semibold" onClick={applyCategoryToSimilar}>
+                    Применить
+                  </button>
+                  <button type="button" onClick={() => setApplyPrompt(null)}>
+                    Нет
+                  </button>
+                </span>
+              </div>
+            )}
+
             <p className="text-xs text-secondary">
               Категорию каждой операции можно сразу поправить тут. Снимите галочку у
               ненужных операций — они не попадут в импорт (потом удалять вручную не придётся).
@@ -618,6 +736,16 @@ export const ImportTransactions: React.FC = () => {
                         <p className="text-primary truncate">{row.title || '—'}</p>
                         <p className="text-secondary text-xs">
                           {new Date(row.date).toLocaleDateString('ru-RU')}
+                          {dupIdx.has(i) && (
+                            <span className="ml-2 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 text-[10px] font-medium">
+                              похоже на дубль
+                            </span>
+                          )}
+                          {autoIdx.has(i) && (
+                            <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-700 text-[10px] font-medium">
+                              авто
+                            </span>
+                          )}
                         </p>
                       </div>
                       <span

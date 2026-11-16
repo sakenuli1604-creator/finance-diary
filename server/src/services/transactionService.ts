@@ -30,6 +30,15 @@ export interface ImportRow {
   categoryId: string;
 }
 
+export interface ImportAnalyzeRow {
+  date: string;
+  dayStart: string; // начало календарного дня строки в часовом поясе пользователя (ISO)
+  dayEnd: string; // конец этого дня (ISO)
+  amount: number;
+  type: 'income' | 'expense';
+  title?: string;
+}
+
 export interface CreateSplitTransactionDTO {
   accountId: string;
   type: 'income' | 'expense';
@@ -357,6 +366,98 @@ class TransactionService {
     );
 
     return result;
+  }
+
+  // Перед импортом: помечает строки, которые уже есть в базе (возможные дубли),
+  // и подсказывает категорию по истории (какую категорию пользователь уже ставил операциям с таким же названием)
+  async analyzeImport(userId: string, accountId: string, rows: ImportAnalyzeRow[]) {
+    const account = await prisma.account.findFirst({ where: { id: accountId, userId } });
+    if (!account) {
+      throw new Error('Account not found');
+    }
+    if (rows.length === 0) {
+      return { duplicates: [] as boolean[], suggestions: [] as (string | null)[] };
+    }
+
+    // ---------- дубли: тот же счёт, тип, сумма и календарный день ----------
+    const bounds = rows.map((r) => ({
+      start: new Date(r.dayStart).getTime(),
+      end: new Date(r.dayEnd).getTime(),
+    }));
+    const valid = bounds.filter((b) => !Number.isNaN(b.start) && !Number.isNaN(b.end));
+
+    let duplicates: boolean[] = rows.map(() => false);
+
+    if (valid.length > 0) {
+      const existing = await prisma.transaction.findMany({
+        where: {
+          userId,
+          accountId,
+          isDeleted: false,
+          transactionDate: {
+            gte: new Date(Math.min(...valid.map((b) => b.start))),
+            lte: new Date(Math.max(...valid.map((b) => b.end))),
+          },
+        },
+        select: { type: true, amount: true, transactionDate: true },
+      });
+
+      // каждую существующую операцию "расходуем" один раз: если в выписке две одинаковые строки,
+      // а в базе одна — дублем считается только первая
+      const used: boolean[] = existing.map(() => false);
+
+      duplicates = rows.map((row, i) => {
+        const { start, end } = bounds[i];
+        if (Number.isNaN(start) || Number.isNaN(end)) return false;
+        const idx = existing.findIndex((t, k) => {
+          if (used[k] || t.type !== row.type) return false;
+          if (Math.abs(Number(t.amount) - row.amount) >= 0.005) return false;
+          const time = t.transactionDate.getTime();
+          return time >= start && time <= end;
+        });
+        if (idx === -1) return false;
+        used[idx] = true;
+        return true;
+      });
+    }
+
+    // ---------- подсказка категории по истории ----------
+    const normalize = (t?: string | null) => (t || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+    const history = await prisma.transaction.findMany({
+      where: { userId, isDeleted: false, title: { not: null } },
+      select: { title: true, type: true, categoryId: true },
+      orderBy: { transactionDate: 'desc' },
+      take: 5000,
+    });
+
+    const counts = new Map<string, Map<string, number>>();
+    history.forEach((h) => {
+      const title = normalize(h.title);
+      if (!title) return;
+      const key = `${h.type}|${title}`;
+      if (!counts.has(key)) counts.set(key, new Map());
+      const byCategory = counts.get(key)!;
+      byCategory.set(h.categoryId, (byCategory.get(h.categoryId) || 0) + 1);
+    });
+
+    const suggestions: (string | null)[] = rows.map((row) => {
+      const title = normalize(row.title);
+      if (!title) return null;
+      const byCategory = counts.get(`${row.type}|${title}`);
+      if (!byCategory) return null;
+      let bestId: string | null = null;
+      let best = 0;
+      byCategory.forEach((count, categoryId) => {
+        if (count > best) {
+          best = count;
+          bestId = categoryId;
+        }
+      });
+      return bestId;
+    });
+
+    return { duplicates, suggestions };
   }
 
   async update(userId: string, id: string, data: UpdateTransactionDTO) {

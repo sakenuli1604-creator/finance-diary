@@ -62,6 +62,11 @@ export interface ImportRow {
   categoryId: string;
 }
 
+export interface ImportAnalysis {
+  duplicates: boolean[];
+  suggestions: (string | null)[];
+}
+
 export const transactionsAPI = {
   getAll: async (filters?: TransactionFilters): Promise<Transaction[]> => {
     const response = await api.get<Transaction[]>('/transactions', { params: filters });
@@ -80,6 +85,26 @@ export const transactionsAPI = {
 
   createSplit: async (data: CreateSplitTransactionData): Promise<Transaction[]> => {
     const response = await api.post<Transaction[]>('/transactions/split', data);
+    return response.data;
+  },
+
+  analyzeImport: async (accountId: string, rows: ImportRow[]): Promise<ImportAnalysis> => {
+    // Сервер не знает часовой пояс пользователя, поэтому границы календарного дня считаем здесь
+    const payload = rows.map((r) => {
+      const d = new Date(r.date);
+      return {
+        date: r.date,
+        dayStart: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString(),
+        dayEnd: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString(),
+        amount: r.amount,
+        type: r.type,
+        title: r.title,
+      };
+    });
+    const response = await api.post<ImportAnalysis>('/transactions/import/analyze', {
+      accountId,
+      rows: payload,
+    });
     return response.data;
   },
 

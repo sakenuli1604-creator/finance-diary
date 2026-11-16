@@ -99,6 +99,22 @@ class TransactionController {
     }
   }
 
+  async analyzeImport(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.userId!;
+      const { accountId, rows } = req.body;
+
+      if (!accountId || !Array.isArray(rows)) {
+        return res.status(400).json({ message: 'accountId and rows are required' });
+      }
+
+      const result = await transactionService.analyzeImport(userId, accountId, rows);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.userId!;
