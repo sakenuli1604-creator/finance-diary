@@ -14,7 +14,10 @@ interface TransactionsState {
   isLoading: boolean;
   error: string | null;
 
+  hasMore: boolean;
+  isLoadingMore: boolean;
   fetchTransactions: (filters?: TransactionFilters) => Promise<void>;
+  loadMoreTransactions: (filters?: TransactionFilters) => Promise<void>;
   fetchTransaction: (id: string) => Promise<void>;
   createTransaction: (data: CreateTransactionData) => Promise<Transaction>;
   createSplitTransaction: (data: CreateSplitTransactionData) => Promise<Transaction[]>;
@@ -26,6 +29,8 @@ interface TransactionsState {
 
 export const useTransactionsStore = create<TransactionsState>((set) => ({
   transactions: [],
+  hasMore: false,
+  isLoadingMore: false,
   selectedTransaction: null,
   isLoading: false,
   error: null,
@@ -34,11 +39,36 @@ export const useTransactionsStore = create<TransactionsState>((set) => ({
     try {
       set({ isLoading: true, error: null });
       const transactions = await transactionsAPI.getAll(filters);
-      set({ transactions, isLoading: false });
+      // Если пришла полная страница — вероятно, есть ещё
+      set({
+        transactions,
+        isLoading: false,
+        hasMore: !!filters?.limit && transactions.length >= filters.limit,
+      });
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Failed to fetch transactions',
         isLoading: false,
+      });
+    }
+  },
+
+  loadMoreTransactions: async (filters?: TransactionFilters) => {
+    try {
+      set({ isLoadingMore: true });
+      const current = useTransactionsStore.getState().transactions;
+      const next = await transactionsAPI.getAll({ ...filters, offset: current.length });
+      // защита от дублей на случай, если список изменился между запросами
+      const known = new Set(current.map((t) => t.id));
+      set({
+        transactions: [...current, ...next.filter((t) => !known.has(t.id))],
+        isLoadingMore: false,
+        hasMore: !!filters?.limit && next.length >= filters.limit,
+      });
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Failed to load more transactions',
+        isLoadingMore: false,
       });
     }
   },

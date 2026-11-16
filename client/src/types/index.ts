@@ -3,6 +3,7 @@ export interface User {
   email: string;
   name: string;
   primaryCurrency: string;
+  timezone?: string;
   createdAt: string;
 }
 

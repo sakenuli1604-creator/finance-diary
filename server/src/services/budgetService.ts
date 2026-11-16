@@ -1,4 +1,12 @@
 import { prisma } from '../lib/prisma';
+import {
+  startOfDayTz,
+  addDaysTz,
+  startOfWeekTz,
+  startOfMonthTz,
+  startOfYearTz,
+} from '../utils/timezone';
+import { getUserTimezone } from '../utils/userTimezone';
 import { getExchangeRates } from './exchangeRateService';
 import { convertAmount } from '../utils/currency';
 
@@ -17,46 +25,30 @@ export interface UpdateBudgetDTO {
   isActive?: boolean;
 }
 
-function getPeriodRange(period: string): { start: Date; end: Date } {
+// Границы периода бюджета в часовом поясе пользователя (неделя — с понедельника)
+function getPeriodRange(period: string, tz: string): { start: Date; end: Date } {
   const now = new Date();
 
   if (period === 'daily') {
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-    return { start, end };
+    return { start: startOfDayTz(now, tz), end: addDaysTz(now, 1, tz) };
   }
 
   if (period === 'weekly') {
-    const start = new Date(now);
-    start.setHours(0, 0, 0, 0);
-    // getDay(): 0 = воскресенье. Приводим к понедельнику как началу недели
-    // (у нас в СНГ неделя начинается с понедельника, не с воскресенья).
-    const dayOfWeek = now.getDay();
-    const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    start.setDate(now.getDate() - diffToMonday);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 7);
-    return { start, end };
+    return { start: startOfWeekTz(now, tz), end: startOfWeekTz(now, tz, 1) };
   }
 
   if (period === 'yearly') {
-    return {
-      start: new Date(now.getFullYear(), 0, 1),
-      end: new Date(now.getFullYear() + 1, 0, 1),
-    };
+    return { start: startOfYearTz(now, tz), end: startOfYearTz(now, tz, 1) };
   }
 
   // monthly по умолчанию
-  return {
-    start: new Date(now.getFullYear(), now.getMonth(), 1),
-    end: new Date(now.getFullYear(), now.getMonth() + 1, 1),
-  };
+  return { start: startOfMonthTz(now, tz), end: startOfMonthTz(now, tz, 1) };
 }
 
 class BudgetService {
   private async attachSpent(userId: string, budget: any, rates: Record<string, number>) {
-    const { start, end } = getPeriodRange(budget.period);
+    const tz = await getUserTimezone(userId);
+    const { start, end } = getPeriodRange(budget.period, tz);
 
     const where: any = {
       userId,

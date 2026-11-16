@@ -29,6 +29,7 @@ const ImportReceipts = React.lazy(() =>
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { BottomNav } from './components/layout/BottomNav';
 import { InstallPWA } from './components/InstallPWA';
+import { TimezoneSync } from './components/TimezoneSync';
 
 function AppContent() {
   const location = useLocation();
@@ -38,6 +39,7 @@ function AppContent() {
 
   return (
     <>
+      <TimezoneSync />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

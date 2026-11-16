@@ -37,6 +37,16 @@ export interface TransactionFilters {
   amountMin?: number;
   amountMax?: number;
   limit?: number;
+  offset?: number;
+  sortBy?: 'date' | 'amount' | 'category';
+  sortDir?: 'asc' | 'desc';
+}
+
+export interface TransactionTotalsRow {
+  currency: string;
+  type: 'income' | 'expense';
+  sum: number;
+  count: number;
 }
 
 export interface SplitPart {
@@ -85,6 +95,14 @@ export const transactionsAPI = {
 
   createSplit: async (data: CreateSplitTransactionData): Promise<Transaction[]> => {
     const response = await api.post<Transaction[]>('/transactions/split', data);
+    return response.data;
+  },
+
+  // Итоги по тем же фильтрам, но по всем подходящим операциям (не только по загруженной странице)
+  getTotals: async (filters?: TransactionFilters): Promise<TransactionTotalsRow[]> => {
+    const response = await api.get<TransactionTotalsRow[]>('/transactions/totals', {
+      params: filters,
+    });
     return response.data;
   },
 

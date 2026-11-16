@@ -4,6 +4,7 @@ import { User } from '../types';
 export interface UpdateProfileData {
   name?: string;
   primaryCurrency?: string;
+  timezone?: string;
 }
 
 export interface RatesResponse {

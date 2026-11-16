@@ -1,4 +1,6 @@
 import { prisma } from '../lib/prisma';
+import { startOfDayTz, addDaysTz } from '../utils/timezone';
+import { getUserTimezone } from '../utils/userTimezone';
 import { randomUUID } from 'crypto';
 import { getExchangeRates } from './exchangeRateService';
 import { convertAmount } from '../utils/currency';
@@ -72,6 +74,9 @@ export interface TransactionFilters {
   amountMin?: number;
   amountMax?: number;
   limit?: number;
+  offset?: number;
+  sortBy?: 'date' | 'amount' | 'category';
+  sortDir?: 'asc' | 'desc';
 }
 
 class TransactionService {
@@ -99,7 +104,7 @@ class TransactionService {
     return category;
   }
 
-  async getAll(userId: string, filters: TransactionFilters = {}) {
+  private buildListWhere(userId: string, filters: TransactionFilters) {
     const where: any = { userId, isDeleted: false };
 
     if (filters.accountId) where.accountId = filters.accountId;
@@ -129,14 +134,48 @@ class TransactionService {
       ];
     }
 
+    return where;
+  }
+
+  async getAll(userId: string, filters: TransactionFilters = {}) {
+    const where = this.buildListWhere(userId, filters);
+    const dir = filters.sortDir === 'asc' ? 'asc' : 'desc';
+
+    // Порядок задаётся на сервере и всегда однозначный (в конце id) — иначе страницы при постраничной
+    // загрузке могли бы пересекаться или терять строки с одинаковой датой/суммой
+    const orderBy: any[] =
+      filters.sortBy === 'amount'
+        ? [{ amount: dir }, { transactionDate: 'desc' }, { id: 'desc' }]
+        : filters.sortBy === 'category'
+          ? [{ category: { name: dir } }, { transactionDate: 'desc' }, { id: 'desc' }]
+          : [{ transactionDate: dir }, { id: dir }];
+
     return prisma.transaction.findMany({
       where,
       include: { account: true, category: true, tags: { include: { tag: true } } },
-      orderBy: { transactionDate: 'desc' },
-      // Без явного лимита отдаём разумный дефолт, а не всю историю целиком —
-      // иначе с ростом количества операций ответ будет только пухнуть.
+      orderBy,
+      skip: filters.offset ?? 0,
+      // Без явного лимита отдаём разумный дефолт, а не всю историю целиком
       take: filters.limit ?? 500,
     });
+  }
+
+  // Итоги по тем же фильтрам, но по ВСЕМ подходящим операциям (а не только по загруженной странице).
+  // Отдаём суммы по (валюта, тип) — перевод в основную валюту делает клиент по своим курсам.
+  async getTotals(userId: string, filters: TransactionFilters = {}) {
+    const where = this.buildListWhere(userId, filters);
+    const groups = await prisma.transaction.groupBy({
+      by: ['currency', 'type'],
+      where,
+      _sum: { amount: true },
+      _count: { _all: true },
+    });
+    return groups.map((g: any) => ({
+      currency: g.currency,
+      type: g.type,
+      sum: Number(g._sum.amount || 0),
+      count: g._count._all,
+    }));
   }
 
   async getById(userId: string, id: string) {
@@ -725,10 +764,11 @@ class TransactionService {
   }
 
   async getTodayStats(userId: string) {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    // "Сегодня" — по часовому поясу пользователя, а не сервера (Railway работает в UTC)
+    const tz = await getUserTimezone(userId);
+    const now = new Date();
+    const startOfDay = startOfDayTz(now, tz);
+    const endOfDay = new Date(addDaysTz(now, 1, tz).getTime() - 1);
 
     const [user, transactions] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { primaryCurrency: true } }),

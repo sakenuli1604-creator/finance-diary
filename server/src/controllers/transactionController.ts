@@ -2,25 +2,42 @@ import { Response, NextFunction } from 'express';
 import transactionService from '../services/transactionService';
 import { AuthRequest } from '../middlewares/auth';
 
+// Вынесено из класса: Express передаёт методы контроллера как обычные функции, без this
+function parseFilters(req: AuthRequest) {
+  const { accountId, categoryId, type, dateFrom, dateTo, search, amountMin, amountMax, limit, offset, sortBy, sortDir } =
+    req.query;
+  return {
+    accountId: accountId as string,
+    categoryId: categoryId as string,
+    type: type as string,
+    dateFrom: dateFrom as string,
+    dateTo: dateTo as string,
+    search: search as string,
+    amountMin: amountMin ? parseFloat(amountMin as string) : undefined,
+    amountMax: amountMax ? parseFloat(amountMax as string) : undefined,
+    limit: limit ? Math.min(parseInt(limit as string), 2000) : undefined,
+    offset: offset ? Math.max(parseInt(offset as string), 0) : undefined,
+    sortBy: ['date', 'amount', 'category'].includes(sortBy as string)
+      ? (sortBy as 'date' | 'amount' | 'category')
+      : undefined,
+    sortDir: sortDir === 'asc' ? ('asc' as const) : ('desc' as const),
+  };
+}
+
 class TransactionController {
   async getAll(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const userId = req.userId!;
-      const { accountId, categoryId, type, dateFrom, dateTo, search, amountMin, amountMax, limit } = req.query;
-
-      const transactions = await transactionService.getAll(userId, {
-        accountId: accountId as string,
-        categoryId: categoryId as string,
-        type: type as string,
-        dateFrom: dateFrom as string,
-        dateTo: dateTo as string,
-        search: search as string,
-        amountMin: amountMin ? parseFloat(amountMin as string) : undefined,
-        amountMax: amountMax ? parseFloat(amountMax as string) : undefined,
-        limit: limit ? parseInt(limit as string) : undefined,
-      });
-
+      const transactions = await transactionService.getAll(req.userId!, parseFilters(req));
       res.json(transactions);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getTotals(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const totals = await transactionService.getTotals(req.userId!, parseFilters(req));
+      res.json(totals);
     } catch (error) {
       next(error);
     }

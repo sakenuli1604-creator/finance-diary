@@ -1,4 +1,6 @@
 import { prisma } from '../lib/prisma';
+import { startOfMonthTz } from '../utils/timezone';
+import { getUserTimezone } from '../utils/userTimezone';
 import { getExchangeRates } from './exchangeRateService';
 import { convertAmount } from '../utils/currency';
 import budgetService from './budgetService';
@@ -114,9 +116,10 @@ class FeedService {
     primaryCurrency: string,
     rates: Record<string, number>
   ): Promise<FeedEvent | null> {
+    const tz = await getUserTimezone(userId);
     const now = new Date();
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const thisMonthStart = startOfMonthTz(now, tz);
+    const lastMonthStart = startOfMonthTz(now, tz, -1);
 
     const [thisMonthTx, lastMonthTx] = await Promise.all([
       prisma.transaction.findMany({
@@ -166,8 +169,9 @@ class FeedService {
     primaryCurrency: string,
     rates: Record<string, number>
   ): Promise<FeedEvent | null> {
+    const tz = await getUserTimezone(userId);
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthStart = startOfMonthTz(now, tz);
 
     const transactions = await prisma.transaction.findMany({
       where: { userId, type: 'expense', isDeleted: false, transactionDate: { gte: monthStart } },

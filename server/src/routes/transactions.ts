@@ -13,6 +13,7 @@ router.get('/deleted', transactionController.getDeleted);
 router.get('/shops', transactionController.getShopSuggestions);
 router.delete('/trash/empty', transactionController.emptyTrash);
 
+router.get('/totals', transactionController.getTotals);
 router.get('/', transactionController.getAll);
 router.post('/', transactionController.create);
 router.post('/split', transactionController.createSplit);

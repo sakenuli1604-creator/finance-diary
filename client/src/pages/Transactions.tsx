@@ -21,7 +21,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Amount } from '../components/ui/Amount';
 import { convertAmount } from '../utils/currency';
-import { transactionsAPI } from '../api/transactions';
+import { transactionsAPI, TransactionFilters, TransactionTotalsRow } from '../api/transactions';
 import {
   useTransactionFiltersStore,
   resolveDateRange,
@@ -32,6 +32,9 @@ import {
 
 // Позиция прокрутки списка: после правки операции возвращаемся туда же, где были
 let savedScrollY = 0;
+
+// Сколько операций подгружаем за раз; остальные — по кнопке «Показать ещё»
+const PAGE_SIZE = 100;
 
 const PRESET_LABELS: Record<string, string> = { today: 'Сегодня', week: 'Неделя', month: 'Месяц' };
 
@@ -58,7 +61,9 @@ const dayLabel = (key: string) => {
 
 export const Transactions: React.FC = () => {
   const navigate = useNavigate();
-  const { transactions, isLoading, fetchTransactions } = useTransactionsStore();
+  const { transactions, isLoading, fetchTransactions, hasMore, isLoadingMore, loadMoreTransactions } =
+    useTransactionsStore();
+  const [totals, setTotals] = useState<TransactionTotalsRow[] | null>(null);
   const { user } = useAuthStore();
   const { rates, fetchRates } = useExchangeRatesStore();
   const { categories, fetchCategories } = useCategoriesStore();
@@ -85,9 +90,10 @@ export const Transactions: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
-  const loadTransactions = useCallback(() => {
+  // Фильтры запроса (без страницы) — общие для списка, «Показать ещё» и итогов
+  const queryFilters = useMemo<TransactionFilters>(() => {
     const range = resolveDateRange(datePreset, dateFrom, dateTo);
-    return fetchTransactions({
+    return {
       type: filter !== 'all' ? filter : undefined,
       search: f.search || undefined,
       categoryId: categoryId || undefined,
@@ -95,8 +101,18 @@ export const Transactions: React.FC = () => {
       amountMax: amountMax ? parseFloat(amountMax) : undefined,
       dateFrom: localDayStartISO(range.from),
       dateTo: localDayEndISO(range.to),
-    });
-  }, [filter, f.search, categoryId, amountMin, amountMax, datePreset, dateFrom, dateTo, fetchTransactions]);
+      sortBy,
+      sortDir,
+    };
+  }, [filter, f.search, categoryId, amountMin, amountMax, datePreset, dateFrom, dateTo, sortBy, sortDir]);
+
+  const loadTransactions = useCallback(() => {
+    transactionsAPI
+      .getTotals(queryFilters)
+      .then(setTotals)
+      .catch((err) => console.error('Failed to load totals:', err));
+    return fetchTransactions({ ...queryFilters, limit: PAGE_SIZE });
+  }, [queryFilters, fetchTransactions]);
 
   useEffect(() => {
     loadTransactions();
@@ -133,37 +149,26 @@ export const Transactions: React.FC = () => {
 
   // Бэкенд уже применил все фильтры (включая type для income/expense не всегда,
   // поэтому дублируем фильтр по типу и на клиенте — для мгновенного переключения вкладок)
-  const filteredTransactions = (
-    filter === 'all' ? transactions : transactions.filter((t) => t.type === filter)
-  )
-    .slice()
-    .sort((a, b) => {
-      let result = 0;
-      if (sortBy === 'amount') {
-        result = Number(a.amount) - Number(b.amount);
-      } else if (sortBy === 'category') {
-        result = (a.category?.name || '').localeCompare(b.category?.name || '');
-      } else {
-        result = new Date(a.transactionDate).getTime() - new Date(b.transactionDate).getTime();
-      }
-      return sortDir === 'asc' ? result : -result;
-    });
+  // Сортировку и все фильтры уже применил сервер (иначе страницы не стыковались бы);
+  // тип дублируем на клиенте — для мгновенного переключения вкладок
+  const filteredTransactions =
+    filter === 'all' ? transactions : transactions.filter((t) => t.type === filter);
 
-  const totalIncome = transactions
-    .filter((t) => t.type === 'income')
-    .reduce(
-      (sum, t) =>
-        sum + convertAmount(Number(t.amount), t.currency, primaryCurrency, rates),
-      0
-    );
-
-  const totalExpense = transactions
-    .filter((t) => t.type === 'expense')
-    .reduce(
-      (sum, t) =>
-        sum + convertAmount(Number(t.amount), t.currency, primaryCurrency, rates),
-      0
-    );
+  // Итоги — по ВСЕМ операциям под фильтром, а не только по загруженной странице
+  const sumTotals = (type: 'income' | 'expense') =>
+    totals
+      ? totals
+          .filter((row) => row.type === type)
+          .reduce((sum, row) => sum + convertAmount(row.sum, row.currency, primaryCurrency, rates), 0)
+      : transactions
+          .filter((t) => t.type === type)
+          .reduce(
+            (sum, t) => sum + convertAmount(Number(t.amount), t.currency, primaryCurrency, rates),
+            0
+          );
+  const totalIncome = sumTotals('income');
+  const totalExpense = sumTotals('expense');
+  const totalCount = totals ? totals.reduce((n, row) => n + row.count, 0) : transactions.length;
 
   // ---------- Группировка по дням (только при сортировке по дате) ----------
   const groups = useMemo(() => {
@@ -618,6 +623,24 @@ export const Transactions: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Подгрузка следующих операций */}
+      {!selectMode && filteredTransactions.length > 0 && (
+        <div className="max-w-2xl mx-auto px-4 pb-24 text-center space-y-2">
+          <p className="text-xs text-secondary">
+            Показано {filteredTransactions.length} из {totalCount}
+          </p>
+          {hasMore && (
+            <Button
+              variant="secondary"
+              isLoading={isLoadingMore}
+              onClick={() => loadMoreTransactions({ ...queryFilters, limit: PAGE_SIZE })}
+            >
+              Показать ещё
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Панель массовых действий */}
       {selectMode && (

@@ -12,6 +12,7 @@ model User {
   email           String   @unique
   password        String
   name            String
+  timezone     String   @default("Asia/Almaty") // IANA-пояс пользователя: от него считаются "сегодня", недели и месяцы бюджетов
   primaryCurrency String   @default("₸")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
