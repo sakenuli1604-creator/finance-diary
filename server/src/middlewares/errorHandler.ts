@@ -24,7 +24,10 @@ export const errorHandler = (
     return res.status(404).json({ message: err.message });
   }
 
-  if (err.message === 'Account name is required') {
+  if (
+    err.message === 'Account name is required' ||
+    err.message === 'Cannot change currency of an account with operations'
+  ) {
     return res.status(400).json({ message: err.message });
   }
 

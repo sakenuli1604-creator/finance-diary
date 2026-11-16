@@ -40,8 +40,13 @@ export const AccountDetail: React.FC = () => {
       setIsUpdating(true);
       await updateAccount(id!, data);
       setIsEditModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update account:', error);
+      alert(
+        error.response?.data?.message === 'Cannot change currency of an account with operations'
+          ? 'Нельзя сменить валюту счёта, на котором уже есть операции или переводы. Создайте новый счёт в нужной валюте.'
+          : 'Не удалось сохранить изменения счёта. Попробуйте ещё раз.'
+      );
     } finally {
       setIsUpdating(false);
     }

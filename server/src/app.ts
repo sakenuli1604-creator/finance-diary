@@ -25,8 +25,14 @@ app.set('trust proxy', 1);
 
 // Middlewares
 app.use(helmet());
-app.use(cors());
-app.use(express.json());
+// CORS_ORIGIN (необязательно): адреса фронтенда через запятую. Пока не задан — как раньше, разрешено всем.
+const corsOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((o) => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+app.use(cors(corsOrigins.length > 0 ? { origin: corsOrigins } : undefined));
+// 100 КБ по умолчанию мало для импорта большой выписки (сотни строк за раз)
+app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes

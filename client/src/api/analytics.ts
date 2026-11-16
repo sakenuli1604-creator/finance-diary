@@ -60,9 +60,15 @@ export const analyticsAPI = {
     return response.data;
   },
 
-  getTopExpenses: async (from?: string, to?: string, limit = 10, excludeTagIds: string[] = []): Promise<any[]> => {
+  getTopExpenses: async (
+    from?: string,
+    to?: string,
+    limit = 10,
+    excludeTagIds: string[] = [],
+    type: 'expense' | 'income' = 'expense'
+  ): Promise<any[]> => {
     const response = await api.get('/analytics/top-expenses', {
-      params: { from, to, limit, excludeTagIds: excludeTagIds.join(',') },
+      params: { from, to, limit, excludeTagIds: excludeTagIds.join(','), type },
     });
     return response.data;
   },

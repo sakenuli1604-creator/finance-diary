@@ -281,10 +281,17 @@ class AnalyticsService {
     );
   }
 
-  async getTopExpenses(userId: string, dateFrom?: Date, dateTo?: Date, limit = 10, excludeTagIds: string[] = []) {
+  async getTopExpenses(
+    userId: string,
+    dateFrom?: Date,
+    dateTo?: Date,
+    limit = 10,
+    excludeTagIds: string[] = [],
+    type: 'expense' | 'income' = 'expense'
+  ) {
     const where: any = {
       userId,
-      type: 'expense',
+      type,
       isDeleted: false,
     };
 

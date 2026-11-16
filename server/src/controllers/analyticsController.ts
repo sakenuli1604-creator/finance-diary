@@ -71,12 +71,15 @@ class AnalyticsController {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const excludeTagIds = parseExcludeTagIds(req);
 
+      const type = req.query.type === 'income' ? 'income' : 'expense';
+
       const expenses = await analyticsService.getTopExpenses(
         userId,
         dateFrom,
         dateTo,
         limit,
-        excludeTagIds
+        excludeTagIds,
+        type
       );
 
       res.json(expenses);

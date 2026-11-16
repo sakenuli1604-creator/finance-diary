@@ -59,7 +59,19 @@ class AccountService {
 
   async update(userId: string, id: string, data: UpdateAccountDTO) {
     // проверяем что счет принадлежит пользователю
-    await this.getById(userId, id);
+    const existing = await this.getById(userId, id);
+
+    // Смена валюты не конвертирует баланс и ломает снапшоты валюты в истории (100 $ превратились бы в 100 ₸),
+    // поэтому для счёта с операциями или переводами она запрещена
+    if (data.currency !== undefined && data.currency !== existing.currency) {
+      const [txCount, transferCount] = await Promise.all([
+        prisma.transaction.count({ where: { accountId: id } }),
+        prisma.transfer.count({ where: { OR: [{ fromAccountId: id }, { toAccountId: id }] } }),
+      ]);
+      if (txCount + transferCount > 0) {
+        throw new Error('Cannot change currency of an account with operations');
+      }
+    }
 
     return prisma.account.update({
       where: { id },
