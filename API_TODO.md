@@ -82,6 +82,19 @@ GET    /api/analytics/pending-reviews
 GET    /api/analytics/regretted-purchases
 ```
 
+### Integrations ✅ (read-only, отдельный токен)
+```
+GET    /api/integrations/genos/overview?period=month|last_month|all
+```
+Для внешней системы Genos. Авторизация — заголовок `Authorization: Bearer <GENOS_API_TOKEN>`
+(это не JWT пользователя). Выключено, пока не заданы `GENOS_API_TOKEN` (от 32 символов) и
+`GENOS_USER_EMAIL`; тогда маршрут отвечает 404. Токен работает только на этом маршруте и только на чтение.
+
+Ответ: итоги периода (`totalIncome`, `totalExpense`, `regularExpense` — без проектных тегов,
+`projectExpense`, `savings`, `balance`, `currency`), траты по проектным тегам (`projects`) и список
+всех проектных тегов (`projectTags`). Границы месяца считаются в часовом поясе пользователя.
+Лимит запросов: 120 за 15 минут с одного IP.
+
 ---
 
 ## Известные ограничения (не баги, а осознанно не сделано)

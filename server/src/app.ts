@@ -14,6 +14,7 @@ import exportRoutes from './routes/export';
 import tagRoutes from './routes/tags';
 import budgetRoutes from './routes/budgets';
 import feedRoutes from './routes/feed';
+import integrationRoutes from './routes/integrations';
 import { errorHandler } from './middlewares/errorHandler';
 
 dotenv.config();
@@ -48,6 +49,8 @@ app.use('/api/export', exportRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/feed', feedRoutes);
+// Read-only интеграции с отдельным токеном (Genos). Выключено, пока не заданы GENOS_API_TOKEN и GENOS_USER_EMAIL
+app.use('/api/integrations', integrationRoutes);
 
 // Error handler
 app.use(errorHandler);
