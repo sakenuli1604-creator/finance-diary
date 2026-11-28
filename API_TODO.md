@@ -85,6 +85,7 @@ GET    /api/analytics/regretted-purchases
 ### Integrations ✅ (read-only, отдельный токен)
 ```
 GET    /api/integrations/genos/overview?period=month|last_month|all
+GET    /api/integrations/genos/goals
 ```
 Для внешней системы Genos. Авторизация — заголовок `Authorization: Bearer <GENOS_API_TOKEN>`
 (это не JWT пользователя). Выключено, пока не заданы `GENOS_API_TOKEN` (от 32 символов) и
@@ -94,6 +95,12 @@ GET    /api/integrations/genos/overview?period=month|last_month|all
 `projectExpense`, `savings`, `balance`, `currency`), траты по проектным тегам (`projects`) и список
 всех проектных тегов (`projectTags`). Границы месяца считаются в часовом поясе пользователя.
 Лимит запросов: 120 за 15 минут с одного IP.
+
+`/genos/goals`: цели накоплений с подцелями. Для каждой цели: `name`, `currency`, `targetAmount`,
+`currentAmount`, `deadlineDate` (дата `YYYY-MM-DD` в часовом поясе пользователя или `null`),
+`isCompleted` и `items` (подцели: `name`, `targetAmount`, `currentAmount`, `isCompleted`).
+Внутренние идентификаторы счетов не отдаются. Маршрут только читает данные цели пользователя из
+`GENOS_USER_EMAIL`; изменить цели через него нельзя.
 
 ---
 

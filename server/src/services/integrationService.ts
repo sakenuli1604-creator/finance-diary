@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma';
 import analyticsService from './analyticsService';
 import { getUserTimezone } from '../utils/userTimezone';
 import { startOfMonthTz } from '../utils/timezone';
+import { serializeGoals } from '../utils/goalsExport';
 
 export type IntegrationPeriod = 'month' | 'last_month' | 'all';
 export const INTEGRATION_PERIODS: IntegrationPeriod[] = ['month', 'last_month', 'all'];
@@ -67,6 +68,17 @@ class IntegrationService {
       projectTags,
       generatedAt: new Date().toISOString(),
     };
+  }
+
+  // Цели накоплений с подцелями (только чтение). Сроки отдаём датой в часовом поясе пользователя.
+  async getGoals(userId: string, now: Date = new Date()) {
+    const tz = await getUserTimezone(userId);
+    const goals = await prisma.goal.findMany({
+      where: { userId },
+      include: { items: { orderBy: { createdAt: 'asc' } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return serializeGoals(goals, tz, now);
   }
 }
 

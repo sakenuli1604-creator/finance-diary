@@ -20,5 +20,6 @@ router.use(authenticateIntegration);
 
 // Только чтение
 router.get('/genos/overview', (req, res, next) => integrationController.getOverview(req, res, next));
+router.get('/genos/goals', (req, res, next) => integrationController.getGoals(req, res, next));
 
 export default router;

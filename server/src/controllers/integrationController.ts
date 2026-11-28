@@ -17,6 +17,15 @@ class IntegrationController {
       next(error);
     }
   }
+
+  // GET /api/integrations/genos/goals
+  async getGoals(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      res.json(await integrationService.getGoals(req.userId!));
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new IntegrationController();
